@@ -1,0 +1,72 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Royal Spin</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--g:#f5c542;--bg:#0b0613;--c:#1b1129;--r:#e11d48;--ok:#22c55e}
+*{box-sizing:border-box;margin:0;font-family:system-ui,-apple-system,sans-serif}
+body{background:radial-gradient(circle at 50% -10%,#41136b,var(--bg) 65%);color:#fff;min-height:100vh;padding:14px 14px 40px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.logo{font-weight:800;color:var(--g);letter-spacing:1px}
+.bal{background:var(--c);border:1px solid #4b3a6b;border-radius:20px;padding:8px 14px;font-weight:700;color:var(--g)}
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tabs button{flex:1;padding:10px;border:0;border-radius:12px;background:var(--c);color:#bbb;font-weight:600}
+.tabs button.on{background:var(--g);color:#000}
+.card{background:var(--c);border:1px solid #3a2a55;border-radius:18px;padding:16px;margin-bottom:12px}
+.reels{display:flex;gap:10px;justify-content:center;margin:8px 0 16px}
+.reel{width:30%;aspect-ratio:1;background:#0d0818;border:2px solid var(--g);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:52px;box-shadow:inset 0 0 20px #000}
+.reel.spin{animation:b .25s infinite}@keyframes b{50%{transform:translateY(-4px)}}
+input{width:100%;padding:12px;border-radius:12px;border:1px solid #4b3a6b;background:#0d0818;color:#fff;font-size:18px;text-align:center}
+.chips{display:flex;gap:6px;margin:8px 0 12px}.chips button{flex:1;padding:8px;border-radius:10px;border:1px solid #4b3a6b;background:transparent;color:#fff}
+.go{width:100%;padding:15px;border:0;border-radius:14px;background:linear-gradient(#ffd75e,#e0a812);color:#000;font-size:18px;font-weight:800}
+.go:disabled{opacity:.5}.sec{background:#2a1c40;color:#fff;margin-top:8px;font-size:15px}
+.msg{text-align:center;min-height:24px;font-weight:700;margin-top:10px}.win{color:var(--ok)}.lose{color:#f87171}
+.side{display:flex;gap:10px;margin-bottom:12px}.side button{flex:1;padding:18px;font-size:28px;border-radius:14px;border:2px solid #4b3a6b;background:transparent;color:#fff}
+.side button.on{border-color:var(--g);background:#2a1c40}
+.coin{font-size:80px;text-align:center;margin:6px 0}.coin.spin{animation:f .6s infinite linear}@keyframes f{to{transform:rotateY(360deg)}}
+table{width:100%;font-size:14px}td{padding:5px 0}td:last-child{text-align:right;color:var(--g)}small{color:#9a8bb5}
+</style></head><body>
+<div class="top"><div class="logo">🎰 ROYAL SPIN</div><div class="bal" id="bal">…</div></div>
+<div class="tabs"><button class="on" data-t="slots">Слоты</button><button data-t="flip">Монетка</button><button data-t="top">Топ</button></div>
+
+<div id="slots" class="tab"><div class="card">
+<div class="reels"><div class="reel">🎰</div><div class="reel">🎰</div><div class="reel">🎰</div></div>
+<div class="bet"></div><button class="go" id="spin">КРУТИТЬ</button><div class="msg" id="m1"></div></div>
+<div class="card"><small>Выплаты за 3 одинаковых символа</small><table id="pay"></table></div></div>
+
+<div id="flip" class="tab" hidden><div class="card">
+<div class="coin" id="coin">🪙</div>
+<div class="side"><button class="on" data-s="heads">Орёл</button><button data-s="tails">Решка</button></div>
+<div class="bet"></div><button class="go" id="fl">БРОСИТЬ · x2</button><div class="msg" id="m2"></div></div></div>
+
+<div id="top" class="tab" hidden><div class="card"><table id="toplist"></table></div></div>
+<button class="go sec" id="bonus">🎁 Ежедневный бонус</button>
+
+<script>
+const tg=window.Telegram.WebApp;tg.ready();tg.expand();
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let cfg,side='heads',busy=false;
+const api=(action,d={})=>fetch('/api/game',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({initData:tg.initData,action,...d})})
+ .then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j.error||'Ошибка');return j});
+const setBal=n=>$('#bal').textContent='🪙 '+n.toLocaleString('ru');
+const hap=t=>{try{tg.HapticFeedback.notificationOccurred(t)}catch{}};
+$$('.bet').forEach(b=>b.innerHTML='<input type="number" class="amt" inputmode="numeric"><div class="chips"><button data-v="min">MIN</button><button data-v="x2">x2</button><button data-v="half">½</button><button data-v="max">MAX</button></div>');
+const amt=el=>+el.closest('.card').querySelector('.amt').value;
+$$('.chips button').forEach(b=>b.onclick=()=>{const i=b.closest('.card').querySelector('.amt'),v=+i.value||cfg.minBet;
+ i.value=b.dataset.v=='min'?cfg.minBet:b.dataset.v=='max'?cfg.maxBet:b.dataset.v=='x2'?Math.min(v*2,cfg.maxBet):Math.max(Math.floor(v/2),cfg.minBet)});
+$$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.classList.toggle('on',x==b));$$('.tab').forEach(t=>t.hidden=t.id!=b.dataset.t);if(b.dataset.t=='top')api('top').then(r=>$('#toplist').innerHTML=r.top.map((u,i)=>`<tr><td>${i+1}. ${u.name.replace(/</g,'&lt;')}</td><td>${u.balance.toLocaleString('ru')}</td></tr>`).join('')).catch(()=>{})});
+$$('.side button').forEach(b=>b.onclick=()=>{side=b.dataset.s;$$('.side button').forEach(x=>x.classList.toggle('on',x==b))});
+function show(el,win,bet){el.className='msg '+(win?'win':'lose');el.textContent=win?`Выигрыш +${win.toLocaleString('ru')} 🪙`:`Проигрыш −${bet}`;hap(win?'success':'error')}
+$('#spin').onclick=async()=>{if(busy)return;busy=true;const b=amt($('#spin')),R=$$('.reel'),S=cfg.symbols.map(x=>x.s);
+ R.forEach(r=>r.classList.add('spin'));const iv=setInterval(()=>R.forEach(r=>r.textContent=S[Math.random()*S.length|0]),90);$('#m1').textContent='';
+ try{const [r]=await Promise.all([api('slots',{bet:b}),new Promise(z=>setTimeout(z,1100))]);clearInterval(iv);
+  for(let i=0;i<3;i++){await new Promise(z=>setTimeout(z,250));R[i].classList.remove('spin');R[i].textContent=r.reels[i]}
+  setBal(r.balance);show($('#m1'),r.win,b)}catch(e){clearInterval(iv);R.forEach(r=>r.classList.remove('spin'));$('#m1').className='msg lose';$('#m1').textContent=e.message}busy=false};
+$('#fl').onclick=async()=>{if(busy)return;busy=true;const b=amt($('#fl')),c=$('#coin');c.classList.add('spin');$('#m2').textContent='';
+ try{const [r]=await Promise.all([api('flip',{bet:b,side}),new Promise(z=>setTimeout(z,900))]);c.classList.remove('spin');
+  c.textContent=r.result=='heads'?'🦅':'🔘';setBal(r.balance);show($('#m2'),r.win,b)}catch(e){c.classList.remove('spin');$('#m2').className='msg lose';$('#m2').textContent=e.message}busy=false};
+$('#bonus').onclick=()=>api('bonus').then(r=>{setBal(r.balance);tg.showAlert(r.msg)}).catch(e=>tg.showAlert(e.message));
+api('me').then(r=>{cfg=r.cfg;setBal(r.balance);$$('.amt').forEach(i=>i.value=cfg.minBet*5>cfg.maxBet?cfg.minBet:cfg.minBet*5);
+ $('#pay').innerHTML=cfg.symbols.map(x=>`<tr><td>${x.s} ${x.s} ${x.s}</td><td>x${x.m}</td></tr>`).join('');
+ if(!cfg.slotsOn)$('#spin').disabled=true;if(!cfg.flipOn)$('#fl').disabled=true;
+ tg.themeParams&&0}).catch(e=>{document.body.innerHTML='<p style="padding:30px;text-align:center">'+e.message+'</p>'});
+</script></body></html>
