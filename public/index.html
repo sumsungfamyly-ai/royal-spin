@@ -44,7 +44,8 @@ input[type=range]{padding:0;accent-color:var(--g)}
 </main>
 <nav><button data-v="games" class="on"><span>🎮</span>Игры</button><button data-v="friends"><span>👥</span>Друзья</button><button data-v="top"><span>🏆</span>Топ</button><button data-v="me"><span>👤</span>Профиль</button></nav>
 <script>
-const tg=window.Telegram.WebApp;tg.ready();tg.expand();
+window.onerror=(m,u,l)=>{const d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;background:#7f1d36;color:#fff;padding:8px;font-size:12px;z-index:999';d.textContent='Ошибка: '+m+' (стр. '+l+')';document.body.appendChild(d)};
+const tg=window.Telegram?.WebApp||{initData:'',ready(){},expand(){},showAlert:m=>alert(m),showConfirm:(m,f)=>f(confirm(m))};tg.ready();tg.expand();
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let cfg,me,timers=[],busy=false,view='games';
@@ -92,9 +93,9 @@ $('#bk').onclick=()=>nav('games');
 $('#bonus').onclick=()=>api('bonus').then(r=>{boom();tg.showAlert(r.msg)}).catch(e=>tg.showAlert(e.message));
 
 /* ---------- разделы ---------- */
-function nav(v){stopAll();view=v;$$('main>section').forEach(s=>s.hidden=s.id!='v-'+v);$$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));if(v=='friends')social();if(v=='top')top();if(v=='me')profile()}
+function nav(v){stopAll();view=v;$$('main>section').forEach(s=>s.hidden=s.id!='v-'+v);$$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));if(v=='friends')social();if(v=='top')loadTop();if(v=='me')profile()}
 $$('nav button').forEach(b=>b.onclick=()=>nav(b.dataset.v));
-async function top(){const r=await api('top');$('#v-top').innerHTML=`<div class="card"><h3>🏆 Лучшие игроки</h3>${r.top.map((u,i)=>`<div class="row"><b>${['🥇','🥈','🥉'][i]||i+1+'.'}</b><span class="av">${u.avatar}</span><div class="n"><b>${esc(u.nick)}</b><small>Ур. ${u.level}</small></div><b style="color:var(--g)">${fmt(u.balance)}</b></div>`).join('')}</div>`}
+async function loadTop(){const r=await api('top');$('#v-top').innerHTML=`<div class="card"><h3>🏆 Лучшие игроки</h3>${r.top.map((u,i)=>`<div class="row"><b>${['🥇','🥈','🥉'][i]||i+1+'.'}</b><span class="av">${u.avatar}</span><div class="n"><b>${esc(u.nick)}</b><small>Ур. ${u.level}</small></div><b style="color:var(--g)">${fmt(u.balance)}</b></div>`).join('')}</div>`}
 function profile(){const m=me,pc=Math.min(100,(m.xp-m.xpFrom)/(m.xpTo-m.xpFrom)*100);
  $('#v-me').innerHTML=`<div class="card"><div class="avs">${cfg.avatars.map(a=>`<button class="${a==m.avatar?'on':''}">${a}</button>`).join('')}</div><input id="nick" maxlength="20" placeholder="Никнейм" value="${esc(m.nick)}" style="margin-bottom:8px"><textarea id="bio" rows="2" maxlength="60" placeholder="О себе">${esc(m.bio)}</textarea><button class="go" id="sv" style="margin-top:8px">Сохранить профиль</button>
  <div style="margin-top:12px"><b>Уровень ${m.level}</b> <small>${fmt(m.xp)} / ${fmt(m.xpTo)} XP</small><div class="bar"><i style="width:${pc}%"></i></div></div>
