@@ -1,5 +1,5 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Royal Spin</title>
+<meta http-equiv="Cache-Control" content="no-store"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Royal Spin</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{--g:#f5c542;--bg:#0b0613;--c:#1b1129;--ok:#22c55e;--bad:#f87171;--l:#4b3a6b}
@@ -45,9 +45,9 @@ input[type=range]{padding:0;accent-color:var(--g)}
 <nav><button data-v="games" class="on"><span>🎮</span>Игры</button><button data-v="friends"><span>👥</span>Друзья</button><button data-v="top"><span>🏆</span>Топ</button><button data-v="me"><span>👤</span>Профиль</button></nav>
 <script>
 window.onerror=(m,u,l)=>{const d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;background:#7f1d36;color:#fff;padding:8px;font-size:12px;z-index:999';d.textContent='Ошибка: '+m+' (стр. '+l+')';document.body.appendChild(d)};
-const tg=window.Telegram?.WebApp||{initData:'',ready(){},expand(){},showAlert:m=>alert(m),showConfirm:(m,f)=>f(confirm(m))};tg.ready();tg.expand();
+const tg=(window.Telegram&&window.Telegram.WebApp)||{initData:'',ready(){},expand(){},showAlert:m=>alert(m),showConfirm:(m,f)=>f(confirm(m))};tg.ready();tg.expand();
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let cfg,me,timers=[],busy=false,view='games';
 const fmt=n=>Number(n).toLocaleString('ru'),sleep=ms=>new Promise(z=>setTimeout(z,ms));
 const api=(action,d={})=>fetch('/api/game',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({initData:tg.initData,action,...d})}).then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j.error||'Ошибка');if(j.me)setMe(j.me);return j});
@@ -109,8 +109,8 @@ function profile(){const m=me,pc=Math.min(100,(m.xp-m.xpFrom)/(m.xpTo-m.xpFrom)*
 const DT={dice:'🎲 Кости',card:'🃏 Старшая карта',rps:'✊ Камень-ножницы-бумага'},RP={r:'✊',p:'✋',s:'✌️'};
 let soc=null,pollT=null;
 async function social(){try{soc=await api('social')}catch(e){return tg.showAlert(e.message)}drawSocial();clearTimeout(pollT);
- if(view=='friends'){const busyM=soc.matches.some(m=>m.status=='pending'||m.status=='active');pollT=setTimeout(()=>{if(view=='friends'&&!document.hidden&&!$('#duel')?.dataset.open)social()},busyM?4000:20000);timers.push(pollT)}}
-function drawSocial(){const P=Object.fromEntries(soc.people.map(p=>[p.id,p])),nm=id=>id==me.id?'Ты':esc(P[id]?.nick||'Игрок');
+ if(view=='friends'){const busyM=soc.matches.some(m=>m.status=='pending'||m.status=='active');pollT=setTimeout(()=>{if(view=='friends'&&!document.hidden&&!($('#duel')&&$('#duel').dataset.open))social()},busyM?4000:20000);timers.push(pollT)}}
+function drawSocial(){const P=Object.fromEntries(soc.people.map(p=>[p.id,p])),nm=id=>id==me.id?'Ты':esc((P[id]&&P[id].nick)||'Игрок');
  const fr=soc.friends.map(id=>P[id]).filter(Boolean);
  const mt=soc.matches.map(m=>{const mineA=m.a==me.id,opp=mineA?m.b:m.a,box=`<div class="row"><div class="n"><b>${DT[m.type]} · ${fmt(m.bet)} 🪙</b><small>${mineA?'Ты → '+nm(opp):nm(opp)+' → ты'}</small></div>`;let act='';
   if(m.status=='pending')act=mineA?`<small>ждём</small> <button class="sm r" data-dd="${m.id}">Отмена</button>`:`<button class="sm p" data-da="${m.id}">Принять</button> <button class="sm r" data-dd="${m.id}">✖</button>`;
@@ -119,7 +119,7 @@ function drawSocial(){const P=Object.fromEntries(soc.people.map(p=>[p.id,p])),nm
   else{const role=mineA?'a':'b',w=m.w;const show=m.type=='rps'?x=>RP[x]:x=>x.join('+');act=`<small>${show(m.res[role])} vs ${show(m.res[role=='a'?'b':'a'])}</small> <b class="${!w?'':w==role?'win':'lose'}">${!w?'Ничья':w==role?'Победа':'Поражение'}</b>`}
   return box+`<div>${act}</div></div>`}).join('');
  $('#v-friends').innerHTML=`<div class="card"><h3>👥 Добавить друга</h3><small>Твой ID: <b style="color:var(--g)">${me.id}</b> — отправь его другу. Друг должен открыть игру.</small><div style="display:flex;gap:8px;margin-top:8px"><input id="fid" inputmode="numeric" placeholder="ID друга"><button class="sm p" id="fa">Добавить</button></div></div>
- ${soc.requests.length?`<div class="card"><h3>📩 Заявки</h3>${soc.requests.map(id=>`<div class="row"><span class="av">${P[id]?.avatar||'😎'}</span><div class="n"><b>${nm(id)}</b></div><button class="sm p" data-fa="${id}">Принять</button><button class="sm r" data-fd="${id}">✖</button></div>`).join('')}</div>`:''}
+ ${soc.requests.length?`<div class="card"><h3>📩 Заявки</h3>${soc.requests.map(id=>`<div class="row"><span class="av">${(P[id]&&P[id].avatar)||'😎'}</span><div class="n"><b>${nm(id)}</b></div><button class="sm p" data-fa="${id}">Принять</button><button class="sm r" data-fd="${id}">✖</button></div>`).join('')}</div>`:''}
  <div class="card"><h3>Друзья (${fr.length})</h3>${fr.length?fr.map(f=>`<div class="row"><span class="av">${f.avatar}</span><div class="n"><b><span class="dot ${f.online?'on':''}"></span>${esc(f.nick)}</b><small>Ур. ${f.level} · ${f.online?'в сети':'не в сети'}</small></div><button class="sm p" data-du="${f.id}">⚔️</button><button class="sm" data-fr="${f.id}">✖</button></div>`).join(''):'<small>Пока никого. Добавь друга по ID.</small>'}</div>
  <div id="duel"></div><div class="card"><h3>⚔️ Дуэли</h3>${mt||'<small>Вызови друга на дуэль кнопкой ⚔️</small>'}</div>`;
  const act=(a,d)=>api(a,d).then(r=>{if(r.msg)tg.showAlert(r.msg);social()}).catch(e=>tg.showAlert(e.message));
