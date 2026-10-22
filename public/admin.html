@@ -1,44 +1,52 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Админ-панель</title>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Админ-панель · Royal Spin</title>
 <style>
-*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#0f0a1a;color:#eee;padding:16px;max-width:900px;margin:auto}
-h1{color:#f5c542;font-size:22px}input,textarea,button{padding:9px 12px;border-radius:8px;border:1px solid #4b3a6b;background:#1b1129;color:#fff;font-size:14px}
-textarea{width:100%;min-height:90px}button{cursor:pointer;background:#f5c542;color:#000;font-weight:700;border:0}button.s{background:#2a1c40;color:#fff}button.d{background:#e11d48;color:#fff}
-.tabs{display:flex;gap:6px;margin:14px 0;flex-wrap:wrap}.tabs button.on{background:#f5c542;color:#000}.tabs button{background:#2a1c40;color:#fff}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.box{background:#1b1129;border-radius:12px;padding:14px}.box b{display:block;font-size:22px;color:#f5c542}
-table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:8px 6px;border-bottom:1px solid #2a1c40;text-align:left}td input{width:100px}
+*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#0f0a1a;color:#eee;padding:16px;max-width:1000px;margin:auto}
+h1{color:#f5c542;font-size:22px;margin:0}h2{font-size:16px;color:#f5c542;margin:18px 0 8px}
+input,textarea,button,select{padding:9px 12px;border-radius:8px;border:1px solid #4b3a6b;background:#1b1129;color:#fff;font-size:14px}textarea{width:100%;min-height:90px}
+button{cursor:pointer;background:#f5c542;color:#000;font-weight:700;border:0}button.s{background:#2a1c40;color:#fff}button.d{background:#e11d48;color:#fff}
+.tabs{display:flex;gap:6px;margin:14px 0;flex-wrap:wrap}.tabs button{background:#2a1c40;color:#fff}.tabs button.on{background:#f5c542;color:#000}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.box{background:#1b1129;border-radius:12px;padding:14px;font-size:13px;color:#a99bc4}.box b{display:block;font-size:22px;color:#f5c542}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 6px;border-bottom:1px solid #2a1c40;text-align:left}th{color:#a99bc4;font-weight:600}td input{width:90px;padding:5px 8px}
 label{display:block;margin:10px 0 4px;color:#a99bc4;font-size:13px}.row{display:flex;gap:10px;flex-wrap:wrap}.row>div{flex:1;min-width:140px}.row input{width:100%}
-#login{max-width:320px;margin:15vh auto;display:grid;gap:10px}.err{color:#f87171}
+.chk{display:inline-flex;align-items:center;gap:6px;margin:6px 14px 6px 0;color:#eee}.chk input{width:auto}
+#login{max-width:320px;margin:15vh auto;display:grid;gap:10px}.err{color:#f87171}.ok{color:#22c55e}.bar{height:8px;background:#2a1c40;border-radius:5px}.bar i{display:block;height:100%;background:#f5c542;border-radius:5px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#555;margin-right:4px}.dot.on{background:#22c55e}
 </style></head><body>
 <div id="login"><h1>🔐 Вход в админ-панель</h1><input id="l" placeholder="Логин"><input id="p" type="password" placeholder="Пароль"><button id="in">Войти</button><div class="err" id="e"></div></div>
 <div id="app" hidden><h1>🎰 Royal Spin · Админ-панель</h1>
-<div class="tabs"><button class="on" data-t="st">Статистика</button><button data-t="us">Игроки</button><button data-t="se">Настройки</button><button data-t="br">Рассылка</button><button id="out" class="d">Выйти</button></div>
+<div class="tabs"><button class="on" data-t="st">📊 Дашборд</button><button data-t="us">👥 Игроки</button><button data-t="gm">🎮 Игры</button><button data-t="pr">🎟 Промокоды</button><button data-t="br">📣 Рассылка</button><button data-t="se">⚙️ Настройки</button><button id="out" class="d">Выйти</button></div>
 <div id="st" class="tab"></div>
-<div id="us" class="tab" hidden><table><thead><tr><th>Игрок</th><th>ID</th><th>Баланс</th><th>Игр</th><th></th></tr></thead><tbody id="ub"></tbody></table></div>
-<div id="se" class="tab" hidden>
-<label>Приветствие бота (/start)</label><textarea id="welcome"></textarea>
-<div class="row"><div><label>Стартовый баланс</label><input id="startBalance" type="number"></div><div><label>Ежедневный бонус</label><input id="dailyBonus" type="number"></div>
-<div><label>Мин. ставка</label><input id="minBet" type="number"></div><div><label>Макс. ставка</label><input id="maxBet" type="number"></div>
-<div><label>Шанс выигрыша в монетке, %</label><input id="flipChance" type="number" step="0.1"></div></div>
-<label><input type="checkbox" id="slotsOn"> Слоты включены</label><label><input type="checkbox" id="flipOn"> Монетка включена</label>
-<label>Символы слотов (s — символ, w — вес/частота, m — множитель за 3 одинаковых)</label><textarea id="symbols" style="min-height:160px"></textarea>
-<p><button id="save">Сохранить</button> <span id="sm"></span></p></div>
-<div id="br" class="tab" hidden><label>Текст сообщения всем игрокам</label><textarea id="bt"></textarea><p><button id="bs">Отправить</button> <span id="bm"></span></p></div>
+<div id="us" class="tab" hidden><div class="row"><div><input id="q" placeholder="Поиск по имени или ID"></div><div><button class="s" id="ga">🎁 Выдать всем…</button></div></div><table><thead><tr><th>Игрок</th><th>ID</th><th>Баланс</th><th>Игр / побед</th><th>Друзей</th><th>Был</th><th></th></tr></thead><tbody id="ub"></tbody></table></div>
+<div id="gm" class="tab" hidden><h2>Включённые игры</h2><div id="gt"></div>
+<div class="row"><div><label>Шанс выигрыша в монетке, %</label><input id="flipChance" type="number" step="0.1"></div><div><label>Комиссия казино в кости/краш/дуэлях, %</label><input id="edge" type="number" step="0.1"></div><div><label>Комиссия дуэлей, %</label><input id="duelFee" type="number" step="0.1"></div></div>
+<label>Символы слотов (s — символ, w — частота, m — множитель за 3 одинаковых)</label><textarea id="symbols" style="min-height:170px"></textarea><p><button class="sv">Сохранить</button> <span class="sm"></span></p></div>
+<div id="pr" class="tab" hidden><h2>Создать промокод</h2><div class="row"><div><input id="pcode" placeholder="КОД (латиница)"></div><div><input id="pamt" type="number" placeholder="Фишек"></div><div><input id="pmax" type="number" placeholder="Лимит активаций (0 — без)"></div><div><button id="pcr">Создать</button></div></div><div id="pmsg"></div><table><thead><tr><th>Код</th><th>Фишек</th><th>Использовано</th><th></th></tr></thead><tbody id="pl"></tbody></table></div>
+<div id="br" class="tab" hidden><label>Сообщение всем игрокам (через бота)</label><textarea id="bt"></textarea><p><button id="bs">Отправить</button> <span id="bm"></span></p></div>
+<div id="se" class="tab" hidden><label>Приветствие бота (/start)</label><textarea id="welcome"></textarea>
+<div class="row"><div><label>Стартовый баланс</label><input id="startBalance" type="number"></div><div><label>Ежедневный бонус</label><input id="dailyBonus" type="number"></div><div><label>Мин. ставка</label><input id="minBet" type="number"></div><div><label>Макс. ставка</label><input id="maxBet" type="number"></div></div>
+<p><button class="sv">Сохранить</button> <span class="sm"></span></p></div>
 </div>
 <script>
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];let T=localStorage.tk||'';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];let T=localStorage.tk||'',ST={},US=[];
 const api=(action,d={})=>fetch('/api/admin',{method:'POST',headers:{'content-type':'application/json','x-token':T},body:JSON.stringify({action,...d})}).then(async r=>{const j=await r.json();if(r.status==401&&action!='login'){logout();throw new Error('auth')}if(!r.ok)throw new Error(j.error);return j});
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const f=n=>Number(n).toLocaleString('ru');
+const GN={slots:'🎰 Слоты',flip:'🪙 Монетка',dice:'🎲 Кости',roulette:'🎡 Рулетка',crash:'🚀 Краш',duel:'⚔️ Дуэли'};
 function logout(){localStorage.removeItem('tk');T='';$('#app').hidden=true;$('#login').hidden=false}
-$('#in').onclick=()=>api('login',{login:$('#l').value,password:$('#p').value}).then(r=>{T=localStorage.tk=r.token;start()}).catch(e=>$('#e').textContent=e.message);
-$('#out').onclick=logout;
+$('#in').onclick=()=>api('login',{login:$('#l').value,password:$('#p').value}).then(r=>{T=localStorage.tk=r.token;start()}).catch(e=>$('#e').textContent=e.message);$('#out').onclick=logout;
 $$('.tabs button[data-t]').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.classList.toggle('on',x==b));$$('.tab').forEach(t=>t.hidden=t.id!=b.dataset.t);load(b.dataset.t)});
-async function load(t){if(t=='st'){const s=await api('stats');$('#st').innerHTML='<div class="grid">'+[['Игроков',s.users],['Игр сыграно',s.games],['Ставки',s.bets],['Выплаты',s.payouts],['Прибыль казино',s.profit],['Возврат игрокам (RTP)',s.rtp+'%']].map(x=>`<div class="box">${x[0]}<b>${x[1]}</b></div>`).join('')+'</div>'}
- if(t=='us'){const r=await api('users');$('#ub').innerHTML=r.users.map(u=>`<tr><td>${esc(u.name)}${u.banned?' 🚫':''}</td><td>${u.id}</td><td><input type="number" value="${u.balance}" id="b${u.id}"> <button class="s" onclick="sb(${u.id})">OK</button></td><td>${u.games}</td><td><button class="${u.banned?'s':'d'}" onclick="bn(${u.id},${!u.banned})">${u.banned?'Разбан':'Бан'}</button></td></tr>`).join('')}
- if(t=='se'){const s=await api('getSettings');for(const k of['welcome','startBalance','dailyBonus','minBet','maxBet','flipChance'])$('#'+k).value=s[k];$('#slotsOn').checked=s.slotsOn;$('#flipOn').checked=s.flipOn;$('#symbols').value=JSON.stringify(s.symbols,null,1)}}
-window.sb=(id)=>api('setBalance',{id,balance:$('#b'+id).value}).then(()=>load('us'));
-window.bn=(id,banned)=>api('ban',{id,banned}).then(()=>load('us'));
-$('#save').onclick=async()=>{try{const s={slotsOn:$('#slotsOn').checked,flipOn:$('#flipOn').checked,symbols:JSON.parse($('#symbols').value)};for(const k of['welcome','startBalance','dailyBonus','minBet','maxBet','flipChance'])s[k]=$('#'+k).value;await api('saveSettings',{settings:s});$('#sm').textContent='✅ Сохранено'}catch(e){$('#sm').textContent='❌ '+e.message}};
+const ago=t=>{if(!t)return'—';const m=(Date.now()-t)/6e4;return m<5?'<span class="dot on"></span>онлайн':m<60?Math.round(m)+' мин':m<1440?Math.round(m/60)+' ч':Math.round(m/1440)+' дн'};
+async function load(t){
+ if(t=='st'){const s=await api('stats');const mx=Math.max(1,...s.per.map(x=>x.bets));
+  $('#st').innerHTML='<div class="grid">'+[['Игроков',f(s.users)],['Онлайн (5 мин)',f(s.online)],['Новых за 24 ч',f(s.new24)],['Фишек у игроков',f(s.chips)],['Игр сыграно',f(s.games)],['Ставки',f(s.bets)],['Выплаты',f(s.payouts)],['Прибыль казино',f(s.profit)],['Возврат игрокам (RTP)',s.rtp+'%']].map(x=>`<div class="box">${x[0]}<b>${x[1]}</b></div>`).join('')+'</div><h2>По играм</h2><table><thead><tr><th>Игра</th><th>Раундов</th><th>Ставки</th><th>Выплаты</th><th>Прибыль</th><th>RTP</th><th></th></tr></thead><tbody>'+s.per.map(x=>`<tr><td>${GN[x.g]}</td><td>${f(x.n)}</td><td>${f(x.bets)}</td><td>${f(x.payouts)}</td><td>${f(x.bets-x.payouts)}</td><td>${x.bets?(x.payouts/x.bets*100).toFixed(1)+'%':'—'}</td><td style="width:20%"><div class="bar"><i style="width:${x.bets/mx*100}%"></i></div></td></tr>`).join('')+'</tbody></table>'}
+ if(t=='us'){US=(await api('users')).users;draw()}
+ if(t=='gm'||t=='se'){ST=await api('getSettings');for(const k of['welcome','startBalance','dailyBonus','minBet','maxBet','flipChance','edge','duelFee'])$('#'+k).value=ST[k];$('#symbols').value=JSON.stringify(ST.symbols,null,1);
+  $('#gt').innerHTML=Object.keys(GN).map(k=>`<label class="chk"><input type="checkbox" data-g="${k}" ${ST.games[k]?'checked':''}> ${GN[k]}</label>`).join('')}
+ if(t=='pr'){const r=await api('promoList');$('#pl').innerHTML=r.promos.map(p=>`<tr><td><b>${esc(p.code)}</b></td><td>${f(p.amount)}</td><td>${p.used}${p.max?' / '+p.max:''}</td><td><button class="d" data-pd="${esc(p.code)}">Удалить</button></td></tr>`).join('')||'<tr><td colspan=4>Пока нет промокодов</td></tr>';$$('[data-pd]').forEach(b=>b.onclick=()=>api('promoDelete',{code:b.dataset.pd}).then(()=>load('pr')))}}
+function draw(){const q=$('#q').value.toLowerCase();$('#ub').innerHTML=US.filter(u=>!q||(u.name+u.tg+u.id).toLowerCase().includes(q)).map(u=>`<tr><td>${u.avatar} ${esc(u.name)}${u.banned?' 🚫':''}</td><td>${u.id}</td><td><input type="number" value="${u.balance}" id="b${u.id}"> <button class="s" data-sb="${u.id}">OK</button></td><td>${u.games} / ${u.wins}</td><td>${u.friends}</td><td>${ago(u.lastSeen)}</td><td><button class="${u.banned?'s':'d'}" data-bn="${u.id}:${!u.banned}">${u.banned?'Разбан':'Бан'}</button></td></tr>`).join('');
+ $$('[data-sb]').forEach(b=>b.onclick=()=>api('setBalance',{id:b.dataset.sb,balance:$('#b'+b.dataset.sb).value}).then(()=>load('us')));$$('[data-bn]').forEach(b=>{const[i,v]=b.dataset.bn.split(':');b.onclick=()=>api('ban',{id:i,banned:v=='true'}).then(()=>load('us'))})}
+$('#q').oninput=draw;$('#ga').onclick=()=>{const a=prompt('Сколько фишек выдать каждому игроку? (отрицательное — списать)');if(a)api('giveAll',{amount:a}).then(r=>{alert('Готово: '+r.count+' игроков');load('us')}).catch(e=>alert(e.message))};
+$$('.sv').forEach(b=>b.onclick=async()=>{const m=b.parentNode.querySelector('.sm');try{const s={games:{}};$$('[data-g]').forEach(c=>s.games[c.dataset.g]=c.checked);s.symbols=JSON.parse($('#symbols').value);for(const k of['welcome','startBalance','dailyBonus','minBet','maxBet','flipChance','edge','duelFee'])s[k]=$('#'+k).value;await api('saveSettings',{settings:s});m.className='sm ok';m.textContent='✅ Сохранено'}catch(e){m.className='sm err';m.textContent='❌ '+e.message}});
+$('#pcr').onclick=()=>api('promoCreate',{code:$('#pcode').value,amount:$('#pamt').value,max:$('#pmax').value}).then(()=>{$('#pmsg').textContent='✅ Создан';load('pr')}).catch(e=>$('#pmsg').textContent='❌ '+e.message);
 $('#bs').onclick=()=>api('broadcast',{text:$('#bt').value}).then(r=>$('#bm').textContent=`Отправлено ${r.sent} из ${r.total}`).catch(e=>$('#bm').textContent=e.message);
-function start(){$('#login').hidden=true;$('#app').hidden=false;load('st').catch(()=>{})}
-if(T)start();
+function start(){$('#login').hidden=true;$('#app').hidden=false;load('st').catch(()=>{})}if(T)start();
 </script></body></html>
