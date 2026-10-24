@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { get, set, sadd, smembers, mget, incr } from '../lib/db.js';
+import { get, set, del, sadd, smembers, mget, incr } from '../lib/db.js';
 import { verify, tg } from '../lib/tg.js';
 import { getSettings } from '../lib/settings.js';
 
@@ -8,13 +8,34 @@ const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 
 const AV = ['😎', '🤠', '👑', '🦁', '🐺', '🦊', '🐲', '👽', '🤖', '🎩', '💎', '🔥'];
 const lvl = xp => 1 + Math.floor(Math.sqrt((xp || 0) / 500));
 const crashM = t => Math.exp(0.1 * t);
+const day = () => new Date().toISOString().slice(0, 10);
+const yday = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+const nextDay = () => { const n = new Date(); return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1) - Date.now(); };
+const STREAK = [1, 1.5, 2, 2.5, 3, 4, 5];
+const QUESTS = [
+  { id: 'g10', t: 'Сыграй 10 раундов', k: 'games', n: 10, r: 150 },
+  { id: 'w3', t: 'Выиграй 3 раза', k: 'wins', n: 3, r: 250 },
+  { id: 'b1000', t: 'Поставь суммарно 1000 фишек', k: 'bet', n: 1000, r: 200 },
+];
+const ACH = [
+  { id: 'first', t: '🏆 Первая победа', d: 'Выиграй раунд', n: 1, r: 100, k: p => p.wins },
+  { id: 'g100', t: '🎲 Завсегдатай', d: 'Сыграй 100 раундов', n: 100, r: 500, k: p => p.games },
+  { id: 'g1000', t: '🎰 Ветеран', d: 'Сыграй 1000 раундов', n: 1000, r: 3000, k: p => p.games },
+  { id: 'big', t: '💰 Крупный куш', d: 'Выиграй 5 000 за раунд', n: 5000, r: 1000, k: p => p.biggest },
+  { id: 'jack', t: '💎 Джекпот', d: 'Выиграй 50 000 за раунд', n: 50000, r: 5000, k: p => p.biggest },
+  { id: 'fr3', t: '👥 Душа компании', d: 'Добавь 3 друзей', n: 3, r: 300, k: p => p.friends.length },
+  { id: 'duel5', t: '⚔️ Дуэлянт', d: 'Выиграй 5 дуэлей', n: 5, r: 500, k: p => p.duelWins || 0 },
+  { id: 'lv5', t: '⭐ Пятый уровень', d: 'Достигни 5 уровня', n: 5, r: 700, k: p => lvl(p.xp) },
+  { id: 'st7', t: '🔥 Неделя подряд', d: 'Серия входов 7 дней', n: 7, r: 1000, k: p => p.streak || 0 },
+  { id: 'ref3', t: '📣 Амбассадор', d: 'Пригласи 3 друзей', n: 3, r: 1500, k: p => p.refs || 0 },
+];
 class E extends Error { constructor(m, c = 400) { super(m); this.code = c; } }
-const norm = p => { p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
-const pub = p => {
+const norm = p => { p.lvl ??= lvl(p.xp); p.q ??= { d: '', games: 0, wins: 0, bet: 0, done: [] }; p.ach ??= {}; p.hist ??= []; p.streak ??= 0; p.refs ??= 0; p.duelWins ??= 0; p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
+const pub = (p, up) => {
   const l = lvl(p.xp);
   return { id: String(p.id), nick: p.nick || p.name, avatar: p.avatar, bio: p.bio, balance: p.balance, level: l, xp: p.xp,
     xpFrom: 500 * (l - 1) ** 2, xpTo: 500 * l * l, wins: p.wins, games: p.games, biggest: p.biggest,
-    friends: p.friends.length, requests: p.reqIn.length, bonusIn: Math.max(0, p.bonusAt + 864e5 - Date.now()), crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
+    friends: p.friends.length, requests: p.reqIn.length, bonusIn: p.lastDay === day() ? nextDay() : 0, streak: p.lastDay === day() || p.lastDay === yday() ? p.streak : 0, refs: p.refs, lvlUp: up || 0, crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
 };
 const lite = (x, now) => ({ id: String(x.id), nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), online: now - (x.lastSeen || 0) < 120000 });
 const pickSym = sy => {
@@ -42,11 +63,20 @@ export default async function handler(req, res) {
     if (!p) {
       p = norm({ id: u.id, name: u.first_name || u.username || 'Игрок', balance: S.startBalance, banned: false, created: Date.now(), bonusAt: 0, wins: 0, games: 0 });
       dirty[String(u.id)] = p; await sadd('users', String(u.id));
+      const rf = await get('ref:' + u.id);
+      if (rf && String(rf) !== String(u.id)) {
+        const R = await load(rf);
+        if (R) {
+          p.balance += S.refBonus; R.balance += S.refBonus; R.refs += 1; p.friends.push(String(rf)); R.friends.push(String(u.id)); p.refBy = String(rf);
+          try { await tg('sendMessage', { chat_id: rf, text: `🎉 По твоей ссылке пришёл друг! +${S.refBonus} 🪙` }); } catch {}
+        }
+        await del('ref:' + u.id);
+      }
     }
     if (p.banned) throw new E('Аккаунт заблокирован', 403);
     p.name = u.first_name || u.username || p.name || 'Игрок'; p.lastSeen = Date.now();
     const me = String(p.id);
-    let save = !['top', 'social', 'crash_poll', 'resume'].includes(a);
+    let save = !['top', 'social', 'crash_poll', 'resume', 'bonus_info', 'history'].includes(a);
     let out = {};
 
     const on = g => { if (!S.games[g]) throw new E('Игра отключена'); };
@@ -56,8 +86,16 @@ export default async function handler(req, res) {
       if (v > p.balance) throw new E('Недостаточно фишек');
       return v;
     };
+    let lvlUp = 0;
+    const track = (P, g, bet, win) => {
+      const d = day(); if (P.q.d !== d) P.q = { d, games: 0, wins: 0, bet: 0, done: [] };
+      P.q.games++; P.q.bet += bet; if (win > bet) P.q.wins++;
+      P.hist = [{ g, b: bet, w: win, t: Date.now() }, ...P.hist].slice(0, 20);
+      const L = lvl(P.xp); if (L > P.lvl) { P.balance += 100 * L; P.lvl = L; if (P === p) lvlUp = L; }
+    };
+    const hv = h => { const c = h.card, f = pr => (pr > 0 ? Math.floor(h.mult * (1 - S.edge / 100) / pr * 100) / 100 : null); return { card: c, mult: h.mult, steps: h.steps, bet: h.bet, mh: f((13 - c) / 13), ml: f((c - 1) / 13) }; };
     const settle = async (g, bet, win) => {
-      p.games++; p.xp += bet;
+      p.games++; p.xp += bet; track(p, g, bet, win);
       if (win > bet) { p.wins++; if (win > p.biggest) p.biggest = win; }
       await Promise.all([incr('stat:bets', bet), incr('stat:payouts', win), incr('stat:games', 1),
         incr(`g:${g}:bets`, bet), incr(`g:${g}:payouts`, win), incr(`g:${g}:n`, 1)]);
@@ -90,14 +128,51 @@ export default async function handler(req, res) {
       if (!m.w) { A.balance += m.bet; B.balance += m.bet; }
       else { const W = m.w === 'a' ? A : B; paid = pot - fee; W.balance += paid; W.wins++; W.biggest = Math.max(W.biggest, paid); }
       A.games++; B.games++; A.xp += m.bet; B.xp += m.bet;
+      track(A, 'duel', m.bet, m.w === 'a' ? paid : !m.w ? m.bet : 0); track(B, 'duel', m.bet, m.w === 'b' ? paid : !m.w ? m.bet : 0);
+      if (m.w) { const W2 = m.w === 'a' ? A : B; W2.duelWins = (W2.duelWins || 0) + 1; }
       await Promise.all([set('match:' + m.id, m), incr('g:duel:bets', pot), incr('g:duel:payouts', paid), incr('g:duel:n', 1)]);
     };
 
     if (a === 'me') {
-      out = { cfg: { symbols: S.symbols, minBet: S.minBet, maxBet: S.maxBet, games: S.games, edge: S.edge, duelFee: S.duelFee, dailyBonus: S.dailyBonus, avatars: AV, wheel: WHEEL } };
+      out = { cfg: { symbols: S.symbols, minBet: S.minBet, maxBet: S.maxBet, games: S.games, edge: S.edge, duelFee: S.duelFee, dailyBonus: S.dailyBonus, avatars: AV, wheel: WHEEL, faq: S.faq, refBonus: S.refBonus, streak: STREAK, bot: await get('bot:username') } };
     } else if (a === 'bonus') {
-      if (pub(p).bonusIn > 0) throw new E(`Бонус будет доступен через ${Math.ceil(pub(p).bonusIn / 3600000)} ч.`);
-      p.balance += S.dailyBonus; p.bonusAt = Date.now(); out = { msg: `+${S.dailyBonus} фишек!` };
+      if (p.lastDay === day()) throw new E('Бонус уже получен сегодня. Заходи завтра!');
+      p.streak = p.lastDay === yday() ? p.streak + 1 : 1; p.lastDay = day();
+      const r = Math.round(S.dailyBonus * STREAK[(p.streak - 1) % 7]); p.balance += r;
+      out = { msg: `+${r} фишек! Серия: ${p.streak} дн. 🔥` };
+    } else if (a === 'bonus_info') {
+      const qd = p.q.d === day() ? p.q : { games: 0, wins: 0, bet: 0, done: [] };
+      out = {
+        bonus: { streak: pub(p).streak, can: p.lastDay !== day(), mults: STREAK, base: S.dailyBonus, left: pub(p).bonusIn },
+        quests: QUESTS.map(q => ({ id: q.id, t: q.t, n: q.n, r: q.r, have: Math.min(qd[q.k], q.n), claimed: qd.done.includes(q.id) })),
+        ach: ACH.map(x => ({ id: x.id, t: x.t, d: x.d, n: x.n, r: x.r, have: Math.min(x.k(p), x.n), claimed: !!p.ach[x.id] })),
+      };
+    } else if (a === 'quest_claim') {
+      if (p.q.d !== day()) p.q = { d: day(), games: 0, wins: 0, bet: 0, done: [] };
+      const q = QUESTS.find(x => x.id === b.id); if (!q) throw new E('Задание не найдено');
+      if (p.q.done.includes(q.id)) throw new E('Награда уже получена');
+      if (p.q[q.k] < q.n) throw new E('Задание ещё не выполнено');
+      p.q.done.push(q.id); p.balance += q.r; out = { msg: `+${q.r} фишек!` };
+    } else if (a === 'ach_claim') {
+      const x = ACH.find(y => y.id === b.id); if (!x) throw new E('Достижение не найдено');
+      if (p.ach[x.id]) throw new E('Награда уже получена');
+      if (x.k(p) < x.n) throw new E('Достижение ещё не получено');
+      p.ach[x.id] = 1; p.balance += x.r; out = { msg: `+${x.r} фишек!` };
+    } else if (a === 'history') {
+      out = { hist: p.hist };
+    } else if (a === 'hilo_start') {
+      on('hilo'); if (p.hilo) { await settle('hilo', p.hilo.bet, 0); p.hilo = null; }
+      const bt = stake(b.bet); p.balance -= bt; p.hilo = { bet: bt, card: rnd(13) + 1, mult: 1, steps: 0 }; out = { hilo: hv(p.hilo) };
+    } else if (a === 'hilo_guess') {
+      const h = p.hilo; if (!h) throw new E('Раунд не начат');
+      const hi = b.dir !== 'lo', c = h.card, pr = hi ? (13 - c) / 13 : (c - 1) / 13;
+      if (pr <= 0) throw new E('Так ставить нельзя');
+      const nx = rnd(13) + 1, ok = hi ? nx > c : nx < c;
+      if (!ok) { await settle('hilo', h.bet, 0); p.hilo = null; out = { hilo: { lost: true, card: nx, prev: c } }; }
+      else { h.mult = Math.floor(h.mult * (1 - S.edge / 100) / pr * 100) / 100; h.card = nx; h.steps++; out = { hilo: hv(h), prev: c }; }
+    } else if (a === 'hilo_cash') {
+      const h = p.hilo; if (!h || !h.steps) throw new E('Сделай хотя бы один ход');
+      const win = Math.floor(h.bet * h.mult); p.balance += win; await settle('hilo', h.bet, win); p.hilo = null; out = { cashed: true, win, mult: h.mult };
     } else if (a === 'promo') {
       const code = String(b.code || '').trim().toUpperCase().slice(0, 30);
       const pr = code && await get('promo:' + code);
@@ -112,9 +187,10 @@ export default async function handler(req, res) {
       p.bio = String(b.bio || '').slice(0, 60);
       out = { msg: 'Профиль сохранён' };
     } else if (a === 'top') {
+      const by = ['balance', 'xp', 'biggest'].includes(b.by) ? b.by : 'balance';
       const ids = await smembers('users');
       const all = (await mget(ids.slice(0, 1000).map(i => 'user:' + i))).filter(Boolean);
-      out = { top: all.sort((x, y) => y.balance - x.balance).slice(0, 15).map(x => ({ nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), balance: x.balance })) };
+      out = { by, top: all.sort((x, y) => (y[by] || 0) - (x[by] || 0)).slice(0, 15).map(x => ({ nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), value: by === 'xp' ? lvl(x.xp) : x[by] || 0 })) };
     } else if (a === 'slots') {
       on('slots'); const bt = stake(b.bet); p.balance -= bt;
       const r = [pickSym(S.symbols), pickSym(S.symbols), pickSym(S.symbols)];
@@ -202,7 +278,7 @@ export default async function handler(req, res) {
       let r = rnd(WT.reduce((x, y) => x + y, 0)), idx = 0; while (r >= WT[idx]) { r -= WT[idx]; idx++; }
       p.balance += WHEEL[idx]; p.wheelAt = Date.now(); out = { idx, prize: WHEEL[idx] };
     } else if (a === 'resume') {
-      out = { bj: p.bj ? bjView(p.bj) : null, mines: p.mines ? { bet: p.mines.bet, cnt: p.mines.cnt, open: p.mines.open, mult: p.mines.open.length ? minesMult(p.mines.cnt, p.mines.open.length, S.edge) : 1 } : null };
+      out = { hilo: p.hilo ? hv(p.hilo) : null, bj: p.bj ? bjView(p.bj) : null, mines: p.mines ? { bet: p.mines.bet, cnt: p.mines.cnt, open: p.mines.open, mult: p.mines.open.length ? minesMult(p.mines.cnt, p.mines.open.length, S.edge) : 1 } : null };
     } else if (a === 'social') {
       const ms = (await mget(p.mq.slice(-12).map(i => 'match:' + i))).filter(Boolean);
       const ids = new Set([...p.friends, ...p.reqIn, ...ms.flatMap(m => [m.a, m.b])]); ids.delete(me);
@@ -257,7 +333,7 @@ export default async function handler(req, res) {
     } else throw new E('unknown action');
 
     if (save) await Promise.all(Object.entries(dirty).map(([id, x]) => set('user:' + id, x)));
-    res.json({ me: pub(p), ...out });
+    res.json({ me: pub(p, lvlUp), ...out });
   } catch (e) {
     res.status(e instanceof E ? e.code : 500).json({ error: e.message });
   }

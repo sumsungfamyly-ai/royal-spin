@@ -1,0 +1,14 @@
+nav button{font-size:10px;padding:6px 2px}nav button span{font-size:20px}
+.hq{width:32px;height:32px;border-radius:50%;border:1px solid var(--l);background:var(--c);color:var(--g);font-weight:800;font-size:16px;margin-left:auto;margin-right:8px;padding:0}
+.toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#2a1c40;border:1px solid var(--g);color:#fff;padding:10px 16px;border-radius:14px;z-index:120;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.6);animation:tin .35s;max-width:90%;text-align:center}
+.toast.out{opacity:0;transition:opacity .4s}@keyframes tin{from{transform:translate(-50%,-30px);opacity:0}}
+.stk{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:8px 0 12px}
+.sd{background:#0d0818;border:1px solid #3a2a55;border-radius:10px;padding:7px 0;text-align:center;font-size:10px;color:#9a8bb5}.sd b{display:block;font-size:14px;color:#fff}
+.sd.d{background:#14532d;border-color:#22c55e}.sd.n{border-color:var(--g);animation:nx .9s infinite alternate}@keyframes nx{to{box-shadow:0 0 14px rgba(245,197,66,.7)}}
+.qr{padding:10px 0;border-bottom:1px solid #2a1c40}.qr:last-child{border:0}.qr .t{display:flex;justify-content:space-between;gap:8px;align-items:center}.qr small{display:block}
+.lnk{background:#0d0818;border-radius:10px;padding:8px;font-size:12px;word-break:break-all;margin:8px 0;color:var(--g)}
+.fa{border-bottom:1px solid #2a1c40;padding:9px 0}.fa summary{cursor:pointer;font-weight:600}.fa p{margin:8px 0 2px;color:#c9bfe0;font-size:14px;line-height:1.45}
+.hlw{display:flex;justify-content:center;margin:6px 0}
+.hlc{width:98px;height:140px;background:#fff;color:#111;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:40px;font-weight:800;box-shadow:0 10px 20px rgba(0,0,0,.5)}
+.hlc.rd{color:#c81e3a}.hlc.fl{animation:hf .5s}@keyframes hf{0%{transform:rotateY(90deg) scale(.8)}100%{transform:rotateY(0)}}
+.hls{text-align:center;margin:8px 0;min-height:22px;color:var(--g);font-weight:700}.opt button small{display:block;color:#9a8bb5}
