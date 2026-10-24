@@ -191,6 +191,12 @@ export default async function handler(req, res) {
         p.balance -= x.bet; x.bet *= 2; x.doubled = true; x.player.push(draw()); out = await bjFinish(x);
       } else if (a === 'bj_hit') { x.player.push(draw()); out = val(x.player) >= 21 ? await bjFinish(x) : { bj: bjView(x) }; }
       else out = await bjFinish(x);
+    } else if (a === 'rps') {
+      on('rps'); const bt = stake(b.bet); if (!['r', 'p', 's'].includes(b.move)) throw new E('Выбери ход');
+      p.balance -= bt; const bot = ['r', 'p', 's'][rnd(3)];
+      const rs = b.move === bot ? 'draw' : beats[b.move] === bot ? 'win' : 'lose';
+      const win = rs === 'win' ? Math.floor(bt * 2 * (1 - S.edge / 100)) : rs === 'draw' ? bt : 0;
+      p.balance += win; await settle('rps', bt, win); out = { bot, res: rs, win };
     } else if (a === 'wheel') {
       on('wheel'); const w = pub(p).wheelIn; if (w > 0) throw new E(`Колесо будет доступно через ${Math.ceil(w / 3600000)} ч.`);
       let r = rnd(WT.reduce((x, y) => x + y, 0)), idx = 0; while (r >= WT[idx]) { r -= WT[idx]; idx++; }
