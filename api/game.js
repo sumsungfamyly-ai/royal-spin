@@ -14,7 +14,7 @@ const pub = p => {
   const l = lvl(p.xp);
   return { id: String(p.id), nick: p.nick || p.name, avatar: p.avatar, bio: p.bio, balance: p.balance, level: l, xp: p.xp,
     xpFrom: 500 * (l - 1) ** 2, xpTo: 500 * l * l, wins: p.wins, games: p.games, biggest: p.biggest,
-    friends: p.friends.length, requests: p.reqIn.length, bonusIn: Math.max(0, p.bonusAt + 864e5 - Date.now()), crash: !!p.crash };
+    friends: p.friends.length, requests: p.reqIn.length, bonusIn: Math.max(0, p.bonusAt + 864e5 - Date.now()), crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
 };
 const lite = (x, now) => ({ id: String(x.id), nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), online: now - (x.lastSeen || 0) < 120000 });
 const pickSym = sy => {
@@ -24,6 +24,11 @@ const pickSym = sy => {
   return sy[0];
 };
 const beats = { r: 's', s: 'p', p: 'r' };
+const WHEEL = [100, 50, 250, 100, 500, 50, 2500, 150], WT = [22, 28, 10, 18, 6, 28, 1, 12];
+const draw = () => ({ r: rnd(13) + 1, s: rnd(4) });
+const val = h => { let t = 0, a = 0; for (const c of h) { t += c.r > 10 ? 10 : c.r === 1 ? 11 : c.r; if (c.r === 1) a++; } while (t > 21 && a) { t -= 10; a--; } return t; };
+const bjView = g => ({ player: g.player, dealer: [g.dealer[0]], pv: val(g.player) });
+const minesMult = (c, k, edge) => { let m = 1 - edge / 100; for (let j = 0; j < k; j++) m *= (25 - j) / (25 - c - j); return Math.floor(m * 100) / 100; };
 
 export default async function handler(req, res) {
   try {
@@ -41,7 +46,7 @@ export default async function handler(req, res) {
     if (p.banned) throw new E('Аккаунт заблокирован', 403);
     p.name = u.first_name || u.username || p.name || 'Игрок'; p.lastSeen = Date.now();
     const me = String(p.id);
-    let save = !['top', 'social', 'crash_poll'].includes(a);
+    let save = !['top', 'social', 'crash_poll', 'resume'].includes(a);
     let out = {};
 
     const on = g => { if (!S.games[g]) throw new E('Игра отключена'); };
@@ -53,9 +58,19 @@ export default async function handler(req, res) {
     };
     const settle = async (g, bet, win) => {
       p.games++; p.xp += bet;
-      if (win > 0) { p.wins++; if (win > p.biggest) p.biggest = win; }
+      if (win > bet) { p.wins++; if (win > p.biggest) p.biggest = win; }
       await Promise.all([incr('stat:bets', bet), incr('stat:payouts', win), incr('stat:games', 1),
         incr(`g:${g}:bets`, bet), incr(`g:${g}:payouts`, win), incr(`g:${g}:n`, 1)]);
+    };
+    const bjFinish = async x => {
+      const pv = val(x.player); while (pv <= 21 && val(x.dealer) < 17) x.dealer.push(draw());
+      const dv = val(x.dealer), nat = x.player.length === 2 && pv === 21 && !x.doubled; let win = 0, rs = 'lose';
+      if (pv > 21) rs = 'lose';
+      else if (nat && !(dv === 21 && x.dealer.length === 2)) { win = Math.floor(x.bet * 2.5); rs = 'blackjack'; }
+      else if (dv > 21 || pv > dv) { win = x.bet * 2; rs = 'win'; }
+      else if (pv === dv) { win = x.bet; rs = 'push'; }
+      p.balance += win; await settle('blackjack', x.bet, win); p.bj = null;
+      return { bj: { player: x.player, dealer: x.dealer, pv, dv, done: true, win, res: rs } };
     };
     const finishDuel = async m => {
       const A = await load(m.a), B = await load(m.b);
@@ -79,7 +94,7 @@ export default async function handler(req, res) {
     };
 
     if (a === 'me') {
-      out = { cfg: { symbols: S.symbols, minBet: S.minBet, maxBet: S.maxBet, games: S.games, edge: S.edge, duelFee: S.duelFee, dailyBonus: S.dailyBonus, avatars: AV } };
+      out = { cfg: { symbols: S.symbols, minBet: S.minBet, maxBet: S.maxBet, games: S.games, edge: S.edge, duelFee: S.duelFee, dailyBonus: S.dailyBonus, avatars: AV, wheel: WHEEL } };
     } else if (a === 'bonus') {
       if (pub(p).bonusIn > 0) throw new E(`Бонус будет доступен через ${Math.ceil(pub(p).bonusIn / 3600000)} ч.`);
       p.balance += S.dailyBonus; p.bonusAt = Date.now(); out = { msg: `+${S.dailyBonus} фишек!` };
@@ -145,6 +160,43 @@ export default async function handler(req, res) {
       const m = crashM((Date.now() - c.start) / 1000); p.crash = null;
       if (m >= c.cp) { await settle('crash', c.bet, 0); out = { crashed: true, cp: c.cp, win: 0 }; }
       else { const mm = Math.floor(m * 100) / 100, win = Math.floor(c.bet * mm); p.balance += win; await settle('crash', c.bet, win); out = { cashed: true, m: mm, win }; }
+    } else if (a === 'mines_start') {
+      on('mines'); if (p.mines) { await settle('mines', p.mines.bet, 0); p.mines = null; }
+      const bt = stake(b.bet), cnt = Math.min(24, Math.max(1, Math.floor(Number(b.count)) || 3));
+      p.balance -= bt; const ms = new Set(); while (ms.size < cnt) ms.add(rnd(25));
+      p.mines = { bet: bt, cnt, mines: [...ms], open: [] }; out = { started: true };
+    } else if (a === 'mines_open') {
+      const x = p.mines, i = Math.floor(Number(b.i)); if (!x) throw new E('Раунд не начат');
+      if (!(i >= 0 && i < 25) || x.open.includes(i)) throw new E('Нельзя открыть');
+      if (x.mines.includes(i)) { await settle('mines', x.bet, 0); p.mines = null; out = { boom: true, mines: x.mines }; }
+      else {
+        x.open.push(i); const mult = minesMult(x.cnt, x.open.length, S.edge);
+        if (x.open.length === 25 - x.cnt) { const win = Math.floor(x.bet * mult); p.balance += win; await settle('mines', x.bet, win); p.mines = null; out = { cashed: true, win, mult, mines: x.mines }; }
+        else out = { safe: true, mult };
+      }
+    } else if (a === 'mines_cash') {
+      const x = p.mines; if (!x || !x.open.length) throw new E('Сначала открой клетку');
+      const mult = minesMult(x.cnt, x.open.length, S.edge), win = Math.floor(x.bet * mult);
+      p.balance += win; await settle('mines', x.bet, win); p.mines = null; out = { cashed: true, win, mult, mines: x.mines };
+    } else if (a === 'bj_start') {
+      on('blackjack'); if (p.bj) { await settle('blackjack', p.bj.bet, 0); p.bj = null; }
+      const bt = stake(b.bet); p.balance -= bt;
+      const x = { bet: bt, player: [draw(), draw()], dealer: [draw(), draw()] };
+      if (val(x.player) === 21) out = await bjFinish(x); else { p.bj = x; out = { bj: bjView(x) }; }
+    } else if (a === 'bj_hit' || a === 'bj_stand' || a === 'bj_double') {
+      const x = p.bj; if (!x) throw new E('Раунд не начат');
+      if (a === 'bj_double') {
+        if (x.player.length !== 2) throw new E('Удвоить можно только первым ходом');
+        if (x.bet > p.balance) throw new E('Недостаточно фишек');
+        p.balance -= x.bet; x.bet *= 2; x.doubled = true; x.player.push(draw()); out = await bjFinish(x);
+      } else if (a === 'bj_hit') { x.player.push(draw()); out = val(x.player) >= 21 ? await bjFinish(x) : { bj: bjView(x) }; }
+      else out = await bjFinish(x);
+    } else if (a === 'wheel') {
+      on('wheel'); const w = pub(p).wheelIn; if (w > 0) throw new E(`Колесо будет доступно через ${Math.ceil(w / 3600000)} ч.`);
+      let r = rnd(WT.reduce((x, y) => x + y, 0)), idx = 0; while (r >= WT[idx]) { r -= WT[idx]; idx++; }
+      p.balance += WHEEL[idx]; p.wheelAt = Date.now(); out = { idx, prize: WHEEL[idx] };
+    } else if (a === 'resume') {
+      out = { bj: p.bj ? bjView(p.bj) : null, mines: p.mines ? { bet: p.mines.bet, cnt: p.mines.cnt, open: p.mines.open, mult: p.mines.open.length ? minesMult(p.mines.cnt, p.mines.open.length, S.edge) : 1 } : null };
     } else if (a === 'social') {
       const ms = (await mget(p.mq.slice(-12).map(i => 'match:' + i))).filter(Boolean);
       const ids = new Set([...p.friends, ...p.reqIn, ...ms.flatMap(m => [m.a, m.b])]); ids.delete(me);
