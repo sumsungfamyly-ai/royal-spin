@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { get, set, del, sadd, smembers, mget, incr } from '../lib/db.js';
+import { get, set, del, sadd, smembers, mget, incr, lock } from '../lib/db.js';
 import { verify, tg } from '../lib/tg.js';
 import { getSettings } from '../lib/settings.js';
 
@@ -7,7 +7,7 @@ const rnd = n => crypto.randomInt(n);
 const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 const AV = ['😎', '🤠', '👑', '🦁', '🐺', '🦊', '🐲', '👽', '🤖', '🎩', '💎', '🔥'];
 const lvl = xp => 1 + Math.floor(Math.sqrt((xp || 0) / 500));
-const crashM = t => Math.exp(0.1 * t);
+const crashM = t => Math.exp(0.25 * t);
 const day = () => new Date().toISOString().slice(0, 10);
 const yday = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
 const nextDay = () => { const n = new Date(); return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1) - Date.now(); };
@@ -46,18 +46,24 @@ const pickSym = sy => {
 };
 const beats = { r: 's', s: 'p', p: 'r' };
 const WHEEL = [100, 50, 250, 100, 500, 50, 2500, 150], WT = [22, 28, 10, 18, 6, 28, 1, 12];
+const WHEEL2 = [1000, 2000, 3000, 5000, 10000, 25000, 50000, 100000], WT2 = [520, 250, 110, 70, 32, 12, 5, 1];
 const draw = () => ({ r: rnd(13) + 1, s: rnd(4) });
 const val = h => { let t = 0, a = 0; for (const c of h) { t += c.r > 10 ? 10 : c.r === 1 ? 11 : c.r; if (c.r === 1) a++; } while (t > 21 && a) { t -= 10; a--; } return t; };
 const bjView = g => ({ player: g.player, dealer: [g.dealer[0]], pv: val(g.player) });
 const minesMult = (c, k, edge) => { let m = 1 - edge / 100; for (let j = 0; j < k; j++) m *= (25 - j) / (25 - c - j); return Math.floor(m * 100) / 100; };
 
 export default async function handler(req, res) {
+  let lk = null; const pend = [];
   try {
     const b = req.body || {}, a = b.action;
     const u = verify(b.initData);
     if (!u) throw new E('Открой приложение через Telegram-бота', 401);
-    const S = await getSettings();
+    const NOLOCK = ['top', 'social', 'crash_poll', 'resume', 'bonus_info', 'history'], need = !NOLOCK.includes(b.action);
+    const [S, raw, got] = await Promise.all([getSettings(), get('user:' + u.id), need ? lock('lock:' + u.id, 6) : true]);
+    if (!got) throw new E('Подожди секунду…', 429);
+    if (need) lk = 'lock:' + u.id;
     const dirty = {};
+    if (raw) dirty[String(u.id)] = norm(raw);
     const load = async id => { id = String(id); if (dirty[id]) return dirty[id]; const x = await get('user:' + id); if (x) dirty[id] = norm(x); return x ? dirty[id] : null; };
     let p = await load(u.id);
     if (!p) {
@@ -76,7 +82,7 @@ export default async function handler(req, res) {
     if (p.banned) throw new E('Аккаунт заблокирован', 403);
     p.name = u.first_name || u.username || p.name || 'Игрок'; p.lastSeen = Date.now();
     const me = String(p.id);
-    let save = !['top', 'social', 'crash_poll', 'resume', 'bonus_info', 'history'].includes(a);
+    let save = need;
     let out = {};
 
     const on = g => { if (!S.games[g]) throw new E('Игра отключена'); };
@@ -95,10 +101,9 @@ export default async function handler(req, res) {
     };
     const hv = h => { const c = h.card, f = pr => (pr > 0 ? Math.floor(h.mult * (1 - S.edge / 100) / pr * 100) / 100 : null); return { card: c, mult: h.mult, steps: h.steps, bet: h.bet, mh: f((13 - c) / 13), ml: f((c - 1) / 13) }; };
     const settle = async (g, bet, win) => {
-      p.games++; p.xp += bet; track(p, g, bet, win);
+      p.games++; p.xp += Math.min(bet, 500); track(p, g, bet, win);
       if (win > bet) { p.wins++; if (win > p.biggest) p.biggest = win; }
-      await Promise.all([incr('stat:bets', bet), incr('stat:payouts', win), incr('stat:games', 1),
-        incr(`g:${g}:bets`, bet), incr(`g:${g}:payouts`, win), incr(`g:${g}:n`, 1)]);
+      pend.push(Promise.all([incr(`g:${g}:bets`, bet), incr(`g:${g}:payouts`, win), incr(`g:${g}:n`, 1)]));
     };
     const bjFinish = async x => {
       const pv = val(x.player); while (pv <= 21 && val(x.dealer) < 17) x.dealer.push(draw());
@@ -127,14 +132,15 @@ export default async function handler(req, res) {
       let paid = pot;
       if (!m.w) { A.balance += m.bet; B.balance += m.bet; }
       else { const W = m.w === 'a' ? A : B; paid = pot - fee; W.balance += paid; W.wins++; W.biggest = Math.max(W.biggest, paid); }
-      A.games++; B.games++; A.xp += m.bet; B.xp += m.bet;
+      A.games++; B.games++; A.xp += Math.min(m.bet, 500); B.xp += Math.min(m.bet, 500);
       track(A, 'duel', m.bet, m.w === 'a' ? paid : !m.w ? m.bet : 0); track(B, 'duel', m.bet, m.w === 'b' ? paid : !m.w ? m.bet : 0);
       if (m.w) { const W2 = m.w === 'a' ? A : B; W2.duelWins = (W2.duelWins || 0) + 1; }
       await Promise.all([set('match:' + m.id, m), incr('g:duel:bets', pot), incr('g:duel:payouts', paid), incr('g:duel:n', 1)]);
     };
 
     if (a === 'me') {
-      out = { cfg: { symbols: S.symbols, minBet: S.minBet, maxBet: S.maxBet, games: S.games, edge: S.edge, duelFee: S.duelFee, dailyBonus: S.dailyBonus, avatars: AV, wheel: WHEEL, faq: S.faq, refBonus: S.refBonus, streak: STREAK, bot: await get('bot:username') } };
+      if (p.crash && crashM((Date.now() - p.crash.start) / 1000) >= p.crash.cp) { await settle('crash', p.crash.bet, 0); p.crash = null; }
+      out = { cfg: { symbols: S.symbols, minBet: S.minBet, maxBet: S.maxBet, games: S.games, edge: S.edge, duelFee: S.duelFee, dailyBonus: S.dailyBonus, avatars: AV, wheel: WHEEL, wheel2: WHEEL2, wheelCost: S.wheelCost, faq: S.faq, refBonus: S.refBonus, streak: STREAK, bot: await get('bot:username') } };
     } else if (a === 'bonus') {
       if (p.lastDay === day()) throw new E('Бонус уже получен сегодня. Заходи завтра!');
       p.streak = p.lastDay === yday() ? p.streak + 1 : 1; p.lastDay = day();
@@ -194,8 +200,10 @@ export default async function handler(req, res) {
     } else if (a === 'slots') {
       on('slots'); const bt = stake(b.bet); p.balance -= bt;
       const r = [pickSym(S.symbols), pickSym(S.symbols), pickSym(S.symbols)];
-      const win = r[0].s === r[1].s && r[1].s === r[2].s ? Math.round(bt * r[0].m) : 0;
-      p.balance += win; await settle('slots', bt, win); out = { reels: r.map(x => x.s), win };
+      let win = 0, kind = 'none', hit = [];
+      if (r[0].s === r[1].s && r[1].s === r[2].s) { win = Math.round(bt * r[0].m); kind = 'triple'; hit = [0, 1, 2]; }
+      else for (const [i, j] of [[0, 1], [1, 2], [0, 2]]) if (r[i].s === r[j].s) { win = Math.floor(bt * (r[i].p || 0)); if (win > 0) { kind = 'pair'; hit = [i, j]; } break; }
+      p.balance += win; await settle('slots', bt, win); out = { reels: r.map(x => x.s), win, kind, hit };
     } else if (a === 'flip') {
       on('flip'); const bt = stake(b.bet); p.balance -= bt;
       const won = rnd(10000) < S.flipChance * 100, win = won ? bt * 2 : 0;
@@ -228,7 +236,7 @@ export default async function handler(req, res) {
       if (!c) out = { idle: true };
       else {
         const t = (Date.now() - c.start) / 1000, m = crashM(t);
-        if (m >= c.cp) { save = true; await settle('crash', c.bet, 0); p.crash = null; out = { crashed: true, cp: c.cp }; }
+        if (m >= c.cp) out = { crashed: true, cp: c.cp };
         else out = { m: Math.floor(m * 100) / 100, t };
       }
     } else if (a === 'crash_cash') {
@@ -267,6 +275,10 @@ export default async function handler(req, res) {
         p.balance -= x.bet; x.bet *= 2; x.doubled = true; x.player.push(draw()); out = await bjFinish(x);
       } else if (a === 'bj_hit') { x.player.push(draw()); out = val(x.player) >= 21 ? await bjFinish(x) : { bj: bjView(x) }; }
       else out = await bjFinish(x);
+    } else if (a === 'wheel_paid') {
+      on('wheel'); if (p.balance < S.wheelCost) throw new E('Недостаточно фишек');
+      p.balance -= S.wheelCost; let r = rnd(WT2.reduce((x, y) => x + y, 0)), idx = 0; while (r >= WT2[idx]) { r -= WT2[idx]; idx++; }
+      const win = WHEEL2[idx]; p.balance += win; await settle('wheel', S.wheelCost, win); out = { idx, prize: win };
     } else if (a === 'rps') {
       on('rps'); const bt = stake(b.bet); if (!['r', 'p', 's'].includes(b.move)) throw new E('Выбери ход');
       p.balance -= bt; const bot = ['r', 'p', 's'][rnd(3)];
@@ -332,9 +344,11 @@ export default async function handler(req, res) {
       }
     } else throw new E('unknown action');
 
-    if (save) await Promise.all(Object.entries(dirty).map(([id, x]) => set('user:' + id, x)));
+    await Promise.all([...pend, ...(save ? Object.entries(dirty).map(([id, x]) => set('user:' + id, x)) : [])]);
+    if (lk) { await del(lk); lk = null; }
     res.json({ me: pub(p, lvlUp), ...out });
   } catch (e) {
+    if (lk) { try { await del(lk); } catch {} }
     res.status(e instanceof E ? e.code : 500).json({ error: e.message });
   }
 }

@@ -1,0 +1,44 @@
+/* ---- производительность ---- */
+body{background:#0b0613!important}
+.bg3d{background:radial-gradient(circle at 50% -10%,#41136b,#0b0613 65%)}.lite .bg3d{display:block}.lite .bg3d img{display:none}
+.grid{perspective:none}.gc{transform-style:flat;will-change:auto}.gc .pic{transform:none}
+.rl .wi{filter:none}.rl{filter:drop-shadow(0 12px 8px rgba(0,0,0,.45))}.hd .ic{filter:none}.c3i>div .ic{filter:none}
+.ci{display:inline-block;height:1.15em;width:auto;vertical-align:-.22em;margin:0 2px}
+/* ---- шапка ---- */
+.thm{width:32px;height:32px;border-radius:50%;border:1px solid var(--l);background:var(--c);font-size:15px;margin-right:8px;padding:0;color:#fff}
+.hq{margin-right:6px}
+/* ---- как играть ---- */
+.how{margin-bottom:10px;background:#0d0818;border:1px solid #3a2a55;border-radius:12px;padding:9px 12px}.how summary{cursor:pointer;color:var(--g);font-weight:600}
+.how p{margin:8px 0 2px;font-size:14px;line-height:1.45;color:#c9bfe0}
+/* ---- кости: крупно и видно ---- */
+.tbl{height:255px;perspective:900px}.tbl .dz{top:58%}.tbl .dz.a{margin-left:-62px}.tbl .dz.b{margin-left:66px}
+.tbl .sc,.tbl .cb4,.tbl .cf4{width:92px;height:92px}.tbl .sc{left:-46px;top:-66px}
+.tbl .cf4{padding:13px;border-radius:16px}.tbl .cf4 i{width:17px;height:17px}
+.tbl .g1{transform:translateZ(46px)}.tbl .g2{transform:rotateY(90deg) translateZ(46px)}.tbl .g3{transform:rotateX(90deg) translateZ(46px)}
+.tbl .g4{transform:rotateX(-90deg) translateZ(46px)}.tbl .g5{transform:rotateY(-90deg) translateZ(46px)}.tbl .g6{transform:rotateY(180deg) translateZ(46px)}
+.tbl .cb4{transition:transform 2.1s cubic-bezier(.15,.65,.2,1)}
+.tbl .sd{left:-40px;top:38px;width:80px;height:22px}
+.dz.thr.a .sc{animation:th1v 2.3s linear forwards}.dz.thr.b .sc{animation:th2v 2.3s linear forwards}.dz.thr .sd{animation:shdv 2.3s linear forwards}
+@keyframes th1v{0%{transform:translate3d(-280px,110px,0) scale(.5)}30%{transform:translate3d(-90px,-96px,0) scale(1.25)}48%{transform:translate3d(-34px,26px,0) scale(1)}62%{transform:translate3d(-14px,-46px,0) scale(1.08)}76%{transform:translate3d(-4px,12px,0)}88%{transform:translate3d(0,-14px,0)}100%{transform:translate3d(0,0,0) scale(1)}}
+@keyframes th2v{0%{transform:translate3d(280px,100px,0) scale(.5)}30%{transform:translate3d(96px,-100px,0) scale(1.25)}48%{transform:translate3d(36px,22px,0) scale(1)}62%{transform:translate3d(16px,-42px,0) scale(1.08)}76%{transform:translate3d(5px,10px,0)}88%{transform:translate3d(0,-12px,0)}100%{transform:translate3d(0,0,0) scale(1)}}
+@keyframes shdv{0%{opacity:0;transform:scale(.3)}30%{opacity:.1;transform:scale(.5)}48%{opacity:.6;transform:scale(1)}62%{opacity:.25;transform:scale(.7)}76%{opacity:.55;transform:scale(.95)}88%{opacity:.4;transform:scale(.8)}100%{opacity:.55;transform:scale(1)}}
+/* ---- краш ---- */
+#cv{width:100%;height:auto;display:block;border-radius:14px;background:#0d0818;margin-bottom:10px}
+/* ---- светлая тема ---- */
+html.light{--c:#ffffff;--l:#cdbbe8;--g:#a8730a}
+html.light .bg3d{background:radial-gradient(circle at 50% -10%,#e7d6fb,#f6f1fd 65%)}html.light body{background:#f3ecfb!important;color:#1d1230}
+html.light .card{border-color:#e0d3f3;box-shadow:0 4px 14px rgba(80,40,140,.09)}html.light h3{color:#1d1230}
+html.light .bal,html.light .hq,html.light .thm{background:#fff;color:#8a5f00;border-color:#cdbbe8}
+html.light nav{background:#fff;border-top-color:#e0d3f3}html.light nav button{color:#7a6a99}html.light nav button.on{color:#a8730a}
+html.light input,html.light textarea{background:#f6f0fd;color:#1d1230;border-color:#cdbbe8}
+html.light .chips button,html.light .opt button{color:#1d1230;border-color:#cdbbe8}html.light .opt button.on{background:#efe3ff;border-color:#a8730a}
+html.light .gc{background:linear-gradient(160deg,#fff,#efe6fb);color:#1d1230;border-color:#d9c9f0;box-shadow:0 6px 14px rgba(80,40,140,.12)}
+html.light small,html.light .row small,html.light .gc small{color:#6b5b8a}html.light .row,html.light .qr,html.light .fa{border-bottom-color:#e8ddf6}
+html.light .sm{background:#efe6fb;color:#1d1230}html.light .sm.p{background:#f5c542;color:#000}html.light .sm.r{background:#fbd5de;color:#7f1d36}
+html.light .stats div,html.light .stc,html.light .lnk,html.light .avs button,html.light .how{background:#f6f0fd}html.light .how{border-color:#e0d3f3}
+html.light .stc b{color:#1d1230}html.light .stc.d b{color:#fff}html.light .stc.d{color:#d1fae5}
+html.light .bar{background:#e8ddf6}html.light .toast{background:#fff;color:#1d1230}html.light .logo{color:#a8730a}html.light .back{color:#8a5f00}
+html.light .fa p,html.light .how p{color:#4a3a68}html.light .big{color:#a8730a}html.light table td:last-child{color:#a8730a}
+html.light .msg.win,html.light .win{color:#15803d}html.light .lose{color:#c81e3a}html.light .hls{color:#a8730a}
+html.light .gc.off{opacity:.45}html.light .tbl{border-color:#cdbbe8}html.light .curt .msg{color:#fff}
+html.light .stc.d{background:#14532d;border-color:#22c55e}

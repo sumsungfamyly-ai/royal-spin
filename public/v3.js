@@ -4,7 +4,7 @@ var Z=function(ms){return new Promise(function(z){setTimeout(z,ms)})};
 /* ---- режим эффектов (авто подстраивается под слабые устройства) ---- */
 var fx='auto';try{fx=localStorage.getItem('fx')||'auto'}catch(e){}
 var weak=(navigator.deviceMemory&&navigator.deviceMemory<=2)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=3)||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
-function applyFx(){window.FXLITE=fx==='lite'||(fx==='auto'&&weak);document.documentElement.className=window.FXLITE?'lite':''}applyFx();
+function applyFx(){window.FXLITE=fx==='lite'||(fx==='auto'&&weak);document.documentElement.classList.toggle('lite',!!window.FXLITE)}applyFx();
 /* ---- фон и шапка ---- */
 var bg=document.createElement('div');bg.className='bg3d';
 ['chip_red','coin','crown','dice','chip_black','heart'].forEach(function(n,i){bg.innerHTML+='<img class="ic" src="/img/'+n+'.png" alt="" style="left:'+(4+i*16)+'%;top:'+(8+(i*37)%72)+'%;width:'+(40+(i%3)*14)+'px;animation-delay:-'+(i*2)+'s">'});

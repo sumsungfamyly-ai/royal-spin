@@ -25,8 +25,9 @@ export default async function handler(req, res) {
     if (!valid(req.headers['x-token'])) return res.status(401).json({ error: 'auth' });
 
     if (action === 'stats') {
-      const [bets, payouts, games, users, per] = await Promise.all([num('stat:bets'), num('stat:payouts'), num('stat:games'), allUsers(),
+      const [users, per] = await Promise.all([allUsers(),
         Promise.all(GS.map(async g => ({ g, bets: await num(`g:${g}:bets`), payouts: await num(`g:${g}:payouts`), n: await num(`g:${g}:n`) })))]);
+      const bets = per.reduce((s, x) => s + x.bets, 0), payouts = per.reduce((s, x) => s + x.payouts, 0), games = per.reduce((s, x) => s + x.n, 0);
       const day = Date.now() - 864e5;
       return res.json({ users: users.length, online: users.filter(u => (u.lastSeen || 0) > Date.now() - 300000).length,
         new24: users.filter(u => u.created > day).length, chips: users.reduce((s, u) => s + u.balance, 0),

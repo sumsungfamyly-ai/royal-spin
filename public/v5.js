@@ -20,12 +20,13 @@ function row(t,d,have,n,r,claimed,k,id){var pc=Math.round(have/n*100),ok=have>=n
 async function renderBonus(){var el=$('#v-bonus');el.innerHTML='<div class="card"><small>Загрузка…</small></div>';var r;
  try{r=await api('bonus_info')}catch(e){el.innerHTML='<div class="card"><div class="msg lose">'+esc(e.message)+'</div></div>';return}
  var B=r.bonus,cur=B.streak,done=B.can?cur%7:((cur-1)%7)+1;
- var cells=B.mults.map(function(m,i){return '<div class="sd'+(i<done?' d':'')+(B.can&&i==done?' n':'')+'"><b>'+(i+1)+'</b>'+fmt(Math.round(B.base*m))+'</div>'}).join('');
+ var cells=B.mults.map(function(m,i){return '<div class="stc'+(i<done?' d':'')+(B.can&&i==done?' n':'')+'"><b>'+(i+1)+'</b>'+fmt(Math.round(B.base*m))+'</div>'}).join('');
  el.innerHTML='<div class="card"><h3>🔥 Серия входов: '+cur+' дн.</h3><div class="stk">'+cells+'</div><button class="go" id="cl"'+(B.can?'':' disabled')+'>'+(B.can?'Забрать бонус':'Приходи завтра, награда больше')+'</button></div>'
   +'<div class="card"><h3>📋 Задания на сегодня</h3>'+r.quests.map(function(q){return row(q.t,'',q.have,q.n,q.r,q.claimed,'q',q.id)}).join('')+'</div>'
   +'<div class="card"><h3>🏅 Достижения</h3>'+r.ach.map(function(a){return row(a.t,a.d,a.have,a.n,a.r,a.claimed,'a',a.id)}).join('')+'</div>';
- $('#cl').onclick=function(){api('bonus').then(function(x){toast(x.msg);boom();snd('win');renderBonus()}).catch(function(e){tg.showAlert(e.message)})};
- $$('#v-bonus .sm[data-k]').forEach(function(b){b.onclick=function(){api(b.dataset.k=='q'?'quest_claim':'ach_claim',{id:b.dataset.id}).then(function(x){toast(x.msg);boom();snd('win');renderBonus()}).catch(function(e){tg.showAlert(e.message)})}})}
+ $('#cl').onclick=function(){this.disabled=true;claim('bonus')};
+ $$('#v-bonus .sm[data-k]').forEach(function(b){b.onclick=function(){b.disabled=true;claim(b.dataset.k=='q'?'quest_claim':'ach_claim',{id:b.dataset.id})}})}
+var cbusy=false;function claim(a,d){if(cbusy)return;cbusy=true;api(a,d).then(function(x){cbusy=false;toast(x.msg);boom();snd('win');renderBonus()}).catch(function(e){cbusy=false;tg.showAlert(e.message);renderBonus()})}
 $('#bonus').onclick=function(){nav('bonus')};
 /* ---- FAQ ---- */
 function renderFaq(){var F=cfg.faq||[];

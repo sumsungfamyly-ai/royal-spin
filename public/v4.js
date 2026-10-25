@@ -7,6 +7,7 @@ var hold=0,shown=null;
 function paint(){var b=$('#bal'),up=shown!==null&&me.balance>shown;shown=me.balance;b.innerHTML=H('coin')+'<span>'+fmt(me.balance)+'</span>';if(up){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}}
 window.setMe=function(m){me=m;if(!hold)paint()};
 var play=function(fn,el){run(async function(){hold=1;try{await fn()}catch(e){fail(el||'#m',e)}finally{hold=0;paint()}})};
+window.play=play;
 var again=function(){var e=document.createElement('div');e.className='flash';document.body.appendChild(e);setTimeout(function(){e.remove()},600)};
 /* ---- плитки ---- */
 var TL=[['slots','slot','Слоты','до x150'],['crash',0,'Краш','забери вовремя'],['mines',0,'Мины','до x1000'],['blackjack','cards','Блэкджек','выплата x2.5'],['roulette','roulette','Рулетка','x2 · x36'],['dice','dice_white','Кости','свой шанс'],['flip','coin','Монетка','x2'],['rps','hand_p','Камень·Ножницы','x1.94'],['wheel','wheel','Колесо','раз в сутки'],['duel','chips','Дуэли','с друзьями']],EM={crash:'🚀',mines:'💣'};
