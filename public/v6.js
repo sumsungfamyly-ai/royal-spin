@@ -27,7 +27,7 @@ var _p6=profile;window.profile=function(){_p6();var b=document.createElement('bu
 /* ---- «Как играть» в каждой игре ---- */
 var HOW={slots:'Выбери ставку и нажми «Крутить». Три одинаковых символа дают крупный выигрыш по таблице ниже. Два одинаковых символа возвращают часть ставки.',
 flip:'Выбери сторону: доллар или пики. Поставь фишки и брось монету. Угадал — получишь ставку x2.',
-dice:'Выбери «Меньше» или «Больше» и число на ползунке. Если выпавшее число (от 0 до 100) оказалось на твоей стороне — выигрыш. Чем меньше шанс, тем выше множитель.',
+dice:'Бросаются два кубика. Выбери «Меньше», «Ровно» или «Больше» и сумму от 2 до 12. Если сумма двух кубиков подходит, ты выигрываешь. Чем реже выпадает такая сумма, тем выше множитель. Кубики на экране показывают настоящий результат.',
 roulette:'Ставь на цвет, чёт/нечет или половину поля (выплата x2), либо на конкретное число от 0 до 36 (выплата x36). Колесо крутится, шарик выбирает число.',
 crash:'Нажми «Старт»: ракета взлетает, множитель растёт. Нажми «Забрать» до того, как она улетит, и получишь ставку, умноженную на множитель. Не успел — ставка сгорает.',
 mines:'Выбери число мин (от 1 до 24) и нажми «Старт». Открывай клетки: каждая безопасная повышает множитель. «Забрать» — получить выигрыш. Наступил на мину — ставка проиграна.',
@@ -51,15 +51,19 @@ G.slots.r=function(){var CH=84,N=24,SY=cfg.symbols.map(function(x){return x.s});
 var _fl=G.flip.r;G.flip.r=function(){_fl();var b=$$('#sd button');b[0].textContent='$ Доллар';b[1].textContent='♠ Пики'};
 /* ---- КОСТИ: крупный бросок, кубики показывают результат ---- */
 function dz(c){var h='';for(var f=1;f<=6;f++){h+='<div class="cf4 g'+f+'">';for(var i=0;i<9;i++)h+='<i'+(PIP[f].indexOf(i)>-1?' class="p"':'')+'></i>';h+='</div>'}return '<div class="dz '+c+'"><div class="sd"></div><div class="sc"><div class="cb4">'+h+'</div></div></div>'}
-G.dice.r=function(){var mode='under',st=[[0,0],[0,0]];
- $('#gbody').innerHTML='<div class="card"><div class="tbl">'+dz('a')+dz('b')+'</div><div class="big" id="roll">--</div><div class="opt" id="md"><button class="on" data-m="under">Меньше</button><button data-m="over">Больше</button></div><input type="range" id="tg" min="2" max="98" value="50"><div style="text-align:center;margin:8px 0" id="info"></div>'+betBox()+'<button class="go" id="go">БРОСИТЬ</button><div class="msg" id="m"></div></div>';
- var info=function(){var t=+$('#tg').value,ch=mode=='under'?t:100-t;$('#info').innerHTML=(mode=='under'?'Выпадет меньше ':'Выпадет больше ')+'<b>'+t+'</b> · шанс <b>'+ch+'%</b> · <b style="color:var(--g)">x'+((100-cfg.edge)/ch).toFixed(2)+'</b>'};info();$('#tg').oninput=info;sel('#md',function(b){mode=b.dataset.m;info()});
+G.dice.r=function(){var mode='under',t=7,st=[[0,0],[0,0]],W=function(s){return 6-Math.abs(s-7)};
+ var calc=function(m,s){var c=0,x;for(x=2;x<=12;x++)if(m=='under'?x<s:m=='over'?x>s:x==s)c+=W(x);var mu=c?36/c*(1-cfg.edge/100):0;return{c:c,mu:mu,ok:c>0&&mu>=1.02}};
+ var sums='';for(var s=2;s<=12;s++)sums+='<button data-s="'+s+'" style="min-width:26px;padding:9px 0">'+s+'</button>';
+ $('#gbody').innerHTML='<div class="card"><div class="tbl">'+dz('a')+dz('b')+'</div><div class="big" id="roll">--</div><div class="opt" id="md"><button class="on" data-m="under">Меньше</button><button data-m="exact">Ровно</button><button data-m="over">Больше</button></div><div class="opt" id="sm" style="flex-wrap:nowrap;gap:3px">'+sums+'</div><div style="text-align:center;margin:8px 0" id="info"></div>'+betBox()+'<button class="go" id="go">БРОСИТЬ</button><div class="msg" id="m"></div></div>';
+ var info=function(){$$('#sm button').forEach(function(b){var s=+b.dataset.s;b.disabled=!calc(mode,s).ok;b.classList.toggle('on',s==t)});
+  if(!calc(mode,t).ok){t=7;$$('#sm button').forEach(function(b){b.classList.toggle('on',+b.dataset.s==t)})}
+  var r=calc(mode,t);$('#info').innerHTML='Сумма двух кубиков <b>'+(mode=='under'?'меньше':mode=='over'?'больше':'ровно')+' '+t+'</b> · шанс <b>'+(r.c/36*100).toFixed(1)+'%</b> · <b style="color:var(--g)">x'+r.mu.toFixed(2)+'</b>'};
+ info();$$('#sm button').forEach(function(b){b.onclick=function(){t=+b.dataset.s;info()}});sel('#md',function(b){mode=b.dataset.m;info()});
  $('#go').onclick=function(){play(async function(){var b=bet();$('#m').textContent='';$('#roll').textContent='…';
-  var r=await api('dice',{bet:b,mode:mode,target:+$('#tg').value});
-  var d1=Math.min(6,1+Math.floor(r.roll/100*6)),d2=1+(Math.floor(r.roll*100)%6),ds=[d1,d2];
+  var r=await api('dice',{bet:b,mode:mode,target:t}),ds=[r.d1,r.d2];
   $$('.dz').forEach(function(z){z.classList.remove('thr');void z.offsetWidth;z.classList.add('thr')});
   $$('.cb4').forEach(function(c,i){var k=ds[i]-1;st[i][0]+=1440;st[i][1]+=1440+i*360;c.style.transform='rotateX('+(st[i][0]+FACE[k][0]-18)+'deg) rotateY('+(st[i][1]+FACE[k][1]+22)+'deg)'});
-  await Z(2500);var el=$('#roll');el.textContent=r.roll.toFixed(2).padStart(5,'0');el.classList.remove('rv');void el.offsetWidth;el.classList.add('rv');res('#m',r.win,b)})}};
+  await Z(2500);var el=$('#roll');el.textContent=r.d1+' + '+r.d2+' = '+r.sum;el.classList.remove('rv');void el.offsetWidth;el.classList.add('rv');res('#m',r.win,b)})}};
 /* ---- РУЛЕТКА: нельзя ставить на пустое число ---- */
 document.addEventListener('click',function(e){var g=e.target.closest&&e.target.closest('#go');if(!g||!$('#ko'))return;var on=$('#ko button.on');
  if(on&&on.dataset.k=='num'){var v=$('#num').value;if(v===''||+v<0||+v>36){e.stopPropagation();e.preventDefault();fail('#m',new Error('Введи число от 0 до 36'))}}},true);

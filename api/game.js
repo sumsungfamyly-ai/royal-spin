@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { get, set, del, sadd, smembers, mget, incr, lock } from '../lib/db.js';
+import { get, set, del, sadd, smembers, mget, incr, lock, once } from '../lib/db.js';
 import { verify, tg } from '../lib/tg.js';
 import { getSettings } from '../lib/settings.js';
 
@@ -7,6 +7,7 @@ const rnd = n => crypto.randomInt(n);
 const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 const AV = ['😎', '🤠', '👑', '🦁', '🐺', '🦊', '🐲', '👽', '🤖', '🎩', '💎', '🔥'];
 const lvl = xp => 1 + Math.floor(Math.sqrt((xp || 0) / 500));
+const sleep = ms => new Promise(z => setTimeout(z, ms));
 const crashM = t => Math.exp(0.25 * t);
 const day = () => new Date().toISOString().slice(0, 10);
 const yday = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
@@ -53,25 +54,33 @@ const bjView = g => ({ player: g.player, dealer: [g.dealer[0]], pv: val(g.player
 const minesMult = (c, k, edge) => { let m = 1 - edge / 100; for (let j = 0; j < k; j++) m *= (25 - j) / (25 - c - j); return Math.floor(m * 100) / 100; };
 
 export default async function handler(req, res) {
-  let lk = null; const pend = [];
+  let lk = null, mlk = null; const pend = [], held = [];
+  const relAll = async () => { const ks = [lk, mlk, ...held].filter(Boolean); lk = mlk = null; held.length = 0; await Promise.allSettled(ks.map(k => del(k))); };
   try {
     const b = req.body || {}, a = b.action;
     const u = verify(b.initData);
     if (!u) throw new E('Открой приложение через Telegram-бота', 401);
     const NOLOCK = ['top', 'social', 'crash_poll', 'resume', 'bonus_info', 'history'], need = !NOLOCK.includes(b.action);
-    const [S, raw, got] = await Promise.all([getSettings(), get('user:' + u.id), need ? lock('lock:' + u.id, 6) : true]);
-    if (!got) throw new E('Подожди секунду…', 429);
-    if (need) lk = 'lock:' + u.id;
+    if (need) { if (!(await lock('lock:' + u.id, 6))) throw new E('Подожди секунду…', 429); lk = 'lock:' + u.id; }
+    const [S, raw] = await Promise.all([getSettings(), get('user:' + u.id)]);
     const dirty = {};
     if (raw) dirty[String(u.id)] = norm(raw);
     const load = async id => { id = String(id); if (dirty[id]) return dirty[id]; const x = await get('user:' + id); if (x) dirty[id] = norm(x); return x ? dirty[id] : null; };
+    const xload = async id => {
+      id = String(id); if (dirty[id]) return dirty[id];
+      for (let i = 0; i < 6; i++) {
+        if (await lock('lock:' + id, 6)) { held.push('lock:' + id); const x = await get('user:' + id); if (x) dirty[id] = norm(x); return x ? dirty[id] : null; }
+        await sleep(120);
+      }
+      throw new E('Игрок сейчас занят, попробуй ещё раз', 429);
+    };
     let p = await load(u.id);
     if (!p) {
       p = norm({ id: u.id, name: u.first_name || u.username || 'Игрок', balance: S.startBalance, banned: false, created: Date.now(), bonusAt: 0, wins: 0, games: 0 });
       dirty[String(u.id)] = p; await sadd('users', String(u.id));
       const rf = await get('ref:' + u.id);
       if (rf && String(rf) !== String(u.id)) {
-        const R = await load(rf);
+        const R = await xload(rf);
         if (R) {
           p.balance += S.refBonus; R.balance += S.refBonus; R.refs += 1; p.friends.push(String(rf)); R.friends.push(String(u.id)); p.refBy = String(rf);
           try { await tg('sendMessage', { chat_id: rf, text: `🎉 По твоей ссылке пришёл друг! +${S.refBonus} 🪙` }); } catch {}
@@ -116,7 +125,7 @@ export default async function handler(req, res) {
       return { bj: { player: x.player, dealer: x.dealer, pv, dv, done: true, win, res: rs } };
     };
     const finishDuel = async m => {
-      const A = await load(m.a), B = await load(m.b);
+      const A = await xload(m.a), B = await xload(m.b);
       let sa, sb;
       if (m.type === 'rps') {
         m.res = { a: m.moves.a, b: m.moves.b };
@@ -143,6 +152,7 @@ export default async function handler(req, res) {
       out = { cfg: { symbols: S.symbols, minBet: S.minBet, maxBet: S.maxBet, games: S.games, edge: S.edge, duelFee: S.duelFee, dailyBonus: S.dailyBonus, avatars: AV, wheel: WHEEL, wheel2: WHEEL2, wheelCost: S.wheelCost, faq: S.faq, refBonus: S.refBonus, streak: STREAK, bot: await get('bot:username') } };
     } else if (a === 'bonus') {
       if (p.lastDay === day()) throw new E('Бонус уже получен сегодня. Заходи завтра!');
+      if (!(await once('claim:bonus:' + me + ':' + day(), 172800))) throw new E('Бонус уже получен сегодня. Заходи завтра!');
       p.streak = p.lastDay === yday() ? p.streak + 1 : 1; p.lastDay = day();
       const r = Math.round(S.dailyBonus * STREAK[(p.streak - 1) % 7]); p.balance += r;
       out = { msg: `+${r} фишек! Серия: ${p.streak} дн. 🔥` };
@@ -158,11 +168,13 @@ export default async function handler(req, res) {
       const q = QUESTS.find(x => x.id === b.id); if (!q) throw new E('Задание не найдено');
       if (p.q.done.includes(q.id)) throw new E('Награда уже получена');
       if (p.q[q.k] < q.n) throw new E('Задание ещё не выполнено');
+      if (!(await once('claim:q:' + me + ':' + day() + ':' + q.id, 172800))) throw new E('Награда уже получена');
       p.q.done.push(q.id); p.balance += q.r; out = { msg: `+${q.r} фишек!` };
     } else if (a === 'ach_claim') {
       const x = ACH.find(y => y.id === b.id); if (!x) throw new E('Достижение не найдено');
       if (p.ach[x.id]) throw new E('Награда уже получена');
       if (x.k(p) < x.n) throw new E('Достижение ещё не получено');
+      if (!(await once('claim:a:' + me + ':' + x.id, 0))) throw new E('Награда уже получена');
       p.ach[x.id] = 1; p.balance += x.r; out = { msg: `+${x.r} фишек!` };
     } else if (a === 'history') {
       out = { hist: p.hist };
@@ -185,6 +197,7 @@ export default async function handler(req, res) {
       if (!pr) throw new E('Промокод не найден');
       if (pr.usedBy.includes(me)) throw new E('Ты уже использовал этот промокод');
       if (pr.max && pr.usedBy.length >= pr.max) throw new E('Промокод закончился');
+      if (!(await once('claim:promo:' + code + ':' + me, 0))) throw new E('Ты уже использовал этот промокод');
       pr.usedBy.push(me); await set('promo:' + code, pr);
       p.balance += pr.amount; out = { msg: `Промокод активирован: +${pr.amount} фишек!` };
     } else if (a === 'profile') {
@@ -211,12 +224,14 @@ export default async function handler(req, res) {
       out = { result: won ? b.side : b.side === 'heads' ? 'tails' : 'heads', win };
     } else if (a === 'dice') {
       on('dice'); const bt = stake(b.bet);
-      const mode = b.mode === 'over' ? 'over' : 'under';
-      const target = Math.min(98, Math.max(2, Math.floor(Number(b.target) || 50)));
-      const mult = (100 - S.edge) / (mode === 'under' ? target : 100 - target);
-      p.balance -= bt; const roll = rnd(10000) / 100;
-      const win = (mode === 'under' ? roll < target : roll > target) ? Math.floor(bt * mult) : 0;
-      p.balance += win; await settle('dice', bt, win); out = { roll, win, mult: +mult.toFixed(2) };
+      const mode = ['under', 'over', 'exact'].includes(b.mode) ? b.mode : 'under', t = Math.floor(Number(b.target));
+      if (!(t >= 2 && t <= 12)) throw new E('Выбери сумму от 2 до 12');
+      let cnt = 0; for (let s = 2; s <= 12; s++) if (mode === 'under' ? s < t : mode === 'over' ? s > t : s === t) cnt += 6 - Math.abs(s - 7);
+      const mult = 36 / cnt * (1 - S.edge / 100);
+      if (cnt === 0 || mult < 1.02) throw new E('Так ставить нельзя, выбери другое число');
+      p.balance -= bt; const d1 = rnd(6) + 1, d2 = rnd(6) + 1, sum = d1 + d2;
+      const won = mode === 'under' ? sum < t : mode === 'over' ? sum > t : sum === t, win = won ? Math.floor(bt * mult) : 0;
+      p.balance += win; await settle('dice', bt, win); out = { d1, d2, sum, win, mult: +mult.toFixed(2), chance: +(cnt / 36 * 100).toFixed(1) };
     } else if (a === 'roulette') {
       on('roulette'); const bt = stake(b.bet); const k = b.kind, num = Math.floor(Number(b.num));
       if (!['red', 'black', 'even', 'odd', 'low', 'high', 'num'].includes(k) || (k === 'num' && !(num >= 0 && num <= 36))) throw new E('Неверная ставка');
@@ -287,6 +302,7 @@ export default async function handler(req, res) {
       p.balance += win; await settle('rps', bt, win); out = { bot, res: rs, win };
     } else if (a === 'wheel') {
       on('wheel'); const w = pub(p).wheelIn; if (w > 0) throw new E(`Колесо будет доступно через ${Math.ceil(w / 3600000)} ч.`);
+      if (!(await once('cd:wheel:' + me, 86400))) throw new E('Колесо уже крутили сегодня');
       let r = rnd(WT.reduce((x, y) => x + y, 0)), idx = 0; while (r >= WT[idx]) { r -= WT[idx]; idx++; }
       p.balance += WHEEL[idx]; p.wheelAt = Date.now(); out = { idx, prize: WHEEL[idx] };
     } else if (a === 'resume') {
@@ -301,7 +317,7 @@ export default async function handler(req, res) {
     } else if (a === 'friend_add') {
       const id = String(b.id || '').trim();
       if (id === me) throw new E('Это твой собственный ID');
-      const t = /^\d+$/.test(id) && await load(id);
+      const t = /^\d+$/.test(id) && await xload(id);
       if (!t) throw new E('Игрок не найден. Он должен хотя бы раз открыть приложение');
       if (p.friends.includes(id)) throw new E('Уже в друзьях');
       if (p.reqIn.includes(id)) { p.reqIn = p.reqIn.filter(x => x !== id); p.friends.push(id); t.friends.push(me); out = { msg: 'Вы теперь друзья!' }; }
@@ -310,15 +326,15 @@ export default async function handler(req, res) {
       const id = String(b.id);
       if (!p.reqIn.includes(id)) throw new E('Заявка не найдена');
       p.reqIn = p.reqIn.filter(x => x !== id);
-      if (a === 'friend_accept') { const t = await load(id); p.friends.push(id); if (t && !t.friends.includes(me)) t.friends.push(me); }
+      if (a === 'friend_accept') { const t = await xload(id); p.friends.push(id); if (t && !t.friends.includes(me)) t.friends.push(me); }
     } else if (a === 'friend_remove') {
       const id = String(b.id); p.friends = p.friends.filter(x => x !== id);
-      const t = await load(id); if (t) t.friends = t.friends.filter(x => x !== me);
+      const t = await xload(id); if (t) t.friends = t.friends.filter(x => x !== me);
     } else if (a === 'duel_create') {
       on('duel'); const id = String(b.friend);
       if (!p.friends.includes(id)) throw new E('Играть можно только с друзьями');
       if (!['dice', 'card', 'rps'].includes(b.type)) throw new E('Неизвестная игра');
-      const bt = stake(b.bet), t = await load(id); if (!t) throw new E('Игрок не найден');
+      const bt = stake(b.bet), t = await xload(id); if (!t) throw new E('Игрок не найден');
       p.balance -= bt;
       const m = { id: crypto.randomBytes(4).toString('hex'), type: b.type, bet: bt, a: me, b: id, status: 'pending', moves: {}, t: Date.now() };
       await set('match:' + m.id, m);
@@ -326,11 +342,13 @@ export default async function handler(req, res) {
       try { await tg('sendMessage', { chat_id: id, text: `⚔️ ${p.nick || p.name} вызывает тебя на дуэль! Ставка: ${bt} 🪙`, reply_markup: { inline_keyboard: [[{ text: '⚔️ Открыть', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } catch {}
       out = { msg: 'Вызов отправлен' };
     } else if (['duel_accept', 'duel_decline', 'duel_move'].includes(a)) {
+      for (let i = 0; i < 8 && !mlk; i++) { if (await lock('mlock:' + b.id, 6)) mlk = 'mlock:' + b.id; else await sleep(120); }
+      if (!mlk) throw new E('Подожди секунду…', 429);
       const m = await get('match:' + b.id);
       if (!m || (m.a !== me && m.b !== me)) throw new E('Дуэль не найдена');
       if (a === 'duel_decline') {
         if (m.status !== 'pending') throw new E('Уже нельзя отменить');
-        const A = await load(m.a); A.balance += m.bet; m.status = 'done'; m.w = 'x'; await set('match:' + m.id, m);
+        const A = await xload(m.a); A.balance += m.bet; m.status = 'done'; m.w = 'x'; await set('match:' + m.id, m);
       } else if (a === 'duel_accept') {
         if (m.status !== 'pending' || m.b !== me) throw new E('Нельзя принять');
         if (m.bet > p.balance) throw new E('Недостаточно фишек');
@@ -345,10 +363,10 @@ export default async function handler(req, res) {
     } else throw new E('unknown action');
 
     await Promise.all([...pend, ...(save ? Object.entries(dirty).map(([id, x]) => set('user:' + id, x)) : [])]);
-    if (lk) { await del(lk); lk = null; }
+    await relAll();
     res.json({ me: pub(p, lvlUp), ...out });
   } catch (e) {
-    if (lk) { try { await del(lk); } catch {} }
+    await relAll();
     res.status(e instanceof E ? e.code : 500).json({ error: e.message });
   }
 }
