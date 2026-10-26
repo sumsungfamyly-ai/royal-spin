@@ -52,6 +52,10 @@ const draw = () => ({ r: rnd(13) + 1, s: rnd(4) });
 const val = h => { let t = 0, a = 0; for (const c of h) { t += c.r > 10 ? 10 : c.r === 1 ? 11 : c.r; if (c.r === 1) a++; } while (t > 21 && a) { t -= 10; a--; } return t; };
 const bjView = g => ({ player: g.player, dealer: [g.dealer[0]], pv: val(g.player) });
 const minesMult = (c, k, edge) => { let m = 1 - edge / 100; for (let j = 0; j < k; j++) m *= (25 - j) / (25 - c - j); return Math.floor(m * 100) / 100; };
+const PLINKO = [8, 3, 1.4, 0.7, 0.4, 0.7, 1.4, 3, 8];
+const towerMult = (k, edge) => { let m = 1 - edge / 100; for (let j = 0; j < k; j++) m *= 4 / 3; return Math.floor(m * 100) / 100; };
+const CHEST_PR = [0, 0.5, 1.2, 2.5, 8, 20], CHEST_W = [50, 22, 15, 8, 4, 1];
+const chestDraw = () => { let r = rnd(CHEST_W.reduce((a, x) => a + x, 0)), i = 0; while (r >= CHEST_W[i]) { r -= CHEST_W[i]; i++; } return CHEST_PR[i]; };
 
 export default async function handler(req, res) {
   let lk = null, mlk = null; const pend = [], held = [];
@@ -306,7 +310,58 @@ export default async function handler(req, res) {
       let r = rnd(WT.reduce((x, y) => x + y, 0)), idx = 0; while (r >= WT[idx]) { r -= WT[idx]; idx++; }
       p.balance += WHEEL[idx]; p.wheelAt = Date.now(); out = { idx, prize: WHEEL[idx] };
     } else if (a === 'resume') {
-      out = { hilo: p.hilo ? hv(p.hilo) : null, bj: p.bj ? bjView(p.bj) : null, mines: p.mines ? { bet: p.mines.bet, cnt: p.mines.cnt, open: p.mines.open, mult: p.mines.open.length ? minesMult(p.mines.cnt, p.mines.open.length, S.edge) : 1 } : null };
+      out = {
+        hilo: p.hilo ? hv(p.hilo) : null, bj: p.bj ? bjView(p.bj) : null,
+        mines: p.mines ? { bet: p.mines.bet, cnt: p.mines.cnt, open: p.mines.open, mult: p.mines.open.length ? minesMult(p.mines.cnt, p.mines.open.length, S.edge) : 1 } : null,
+        tower: p.tower ? { bet: p.tower.bet, floor: p.tower.floor, picks: p.tower.picks, mult: towerMult(p.tower.floor, S.edge), next: towerMult(p.tower.floor + 1, S.edge) } : null,
+      };
+    } else if (a === 'plinko') {
+      on('plinko'); const bt = stake(b.bet); p.balance -= bt;
+      const path = Array.from({ length: 8 }, () => rnd(2)), slot = path.reduce((s, x) => s + x, 0);
+      const win = Math.floor(bt * PLINKO[slot] * (1 - S.edge / 100));
+      p.balance += win; await settle('plinko', bt, win); out = { path, slot, mult: PLINKO[slot], win };
+    } else if (a === 'tower_start') {
+      on('tower'); if (p.tower) { await settle('tower', p.tower.bet, 0); p.tower = null; }
+      const bt = stake(b.bet); p.balance -= bt;
+      p.tower = { bet: bt, floor: 0, bombs: Array.from({ length: 8 }, () => rnd(4)), picks: [] };
+      out = { started: true, next: towerMult(1, S.edge) };
+    } else if (a === 'tower_pick') {
+      const t = p.tower, col = Math.floor(Number(b.col));
+      if (!t) throw new E('Раунд не начат');
+      if (!(col >= 0 && col < 4)) throw new E('Выбери сундук');
+      if (t.bombs[t.floor] === col) {
+        const bombs = t.bombs; await settle('tower', t.bet, 0); p.tower = null;
+        out = { boom: true, col, floor: t.floor, bombs };
+      } else {
+        t.picks.push(col); t.floor++;
+        if (t.floor >= 8) {
+          const win = Math.floor(t.bet * towerMult(8, S.edge)); p.balance += win; await settle('tower', t.bet, win);
+          const bombs = t.bombs; p.tower = null; out = { cashed: true, win, mult: towerMult(8, S.edge), bombs, col };
+        } else out = { safe: true, col, floor: t.floor, mult: towerMult(t.floor, S.edge), next: towerMult(t.floor + 1, S.edge) };
+      }
+    } else if (a === 'tower_cash') {
+      const t = p.tower; if (!t || !t.floor) throw new E('Поднимись хотя бы на этаж');
+      const mult = towerMult(t.floor, S.edge), win = Math.floor(t.bet * mult), bombs = t.bombs;
+      p.balance += win; await settle('tower', t.bet, win); p.tower = null; out = { cashed: true, win, mult, bombs };
+    } else if (a === 'limbo') {
+      on('limbo'); const bt = stake(b.bet), t = Math.round(Number(b.target) * 100) / 100;
+      if (!(t >= 1.01 && t <= 100)) throw new E('Множитель от 1.01 до 100');
+      p.balance -= bt;
+      const u = (rnd(1e9) + 1) / 1e9, result = Math.min(1e6, Math.floor((1 - S.edge / 100) / u * 100) / 100);
+      const won = result >= t, win = won ? Math.floor(bt * t) : 0;
+      p.balance += win; await settle('limbo', bt, win); out = { result, target: t, win };
+    } else if (a === 'penalty') {
+      on('penalty'); const bt = stake(b.bet), side = ['l', 'c', 'r'].includes(b.side) ? b.side : null;
+      if (!side) throw new E('Выбери угол');
+      p.balance -= bt; const keeper = ['l', 'c', 'r'][rnd(3)], scored = side !== keeper;
+      const win = scored ? Math.floor(bt * 1.5 * (1 - S.edge / 100)) : 0;
+      p.balance += win; await settle('penalty', bt, win); out = { side, keeper, scored, win };
+    } else if (a === 'chests') {
+      on('chests'); const bt = stake(b.bet), pick = Math.floor(Number(b.pick));
+      if (!(pick >= 0 && pick < 4)) throw new E('Выбери сундук');
+      p.balance -= bt; const prizes = [chestDraw(), chestDraw(), chestDraw(), chestDraw()];
+      const win = Math.floor(bt * prizes[pick] * (1 - S.edge / 100));
+      p.balance += win; await settle('chests', bt, win); out = { prizes, pick, win };
     } else if (a === 'social') {
       const ms = (await mget(p.mq.slice(-12).map(i => 'match:' + i))).filter(Boolean);
       const ids = new Set([...p.friends, ...p.reqIn, ...ms.flatMap(m => [m.a, m.b])]); ids.delete(me);

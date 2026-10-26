@@ -31,7 +31,7 @@ label{display:block;margin:10px 0 4px;color:#a99bc4;font-size:13px}.row{display:
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];let T=localStorage.tk||'',ST={},US=[];
 const api=(action,d={})=>fetch('/api/admin',{method:'POST',headers:{'content-type':'application/json','x-token':T},body:JSON.stringify({action,...d})}).then(async r=>{const j=await r.json();if(r.status==401&&action!='login'){logout();throw new Error('auth')}if(!r.ok)throw new Error(j.error);return j});
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const f=n=>Number(n).toLocaleString('ru');
-const GN={slots:'🎰 Слоты',flip:'🪙 Монетка',dice:'🎲 Кости',roulette:'🎡 Рулетка',crash:'🚀 Краш',mines:'💣 Мины',blackjack:'🃏 Блэкджек',rps:'✊ КНБ',hilo:'🃏 Хай-Лоу',wheel:'🎁 Колесо',duel:'⚔️ Дуэли'};
+const GN={slots:'🎰 Слоты',flip:'🪙 Монетка',dice:'🎲 Кости',roulette:'🎡 Рулетка',crash:'🚀 Краш',mines:'💣 Мины',blackjack:'🃏 Блэкджек',rps:'✊ КНБ',hilo:'🃏 Хай-Лоу',plinko:'🔮 Плинко',tower:'🏰 Башня',limbo:'📈 Лимбо',penalty:'⚽ Пенальти',chests:'📦 Сундуки',wheel:'🎁 Колесо',duel:'⚔️ Дуэли'};
 function logout(){localStorage.removeItem('tk');T='';$('#app').hidden=true;$('#login').hidden=false}
 $('#in').onclick=()=>api('login',{login:$('#l').value,password:$('#p').value}).then(r=>{T=localStorage.tk=r.token;start()}).catch(e=>$('#e').textContent=e.message);$('#out').onclick=logout;
 $$('.tabs button[data-t]').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.classList.toggle('on',x==b));$$('.tab').forEach(t=>t.hidden=t.id!=b.dataset.t);load(b.dataset.t)});
