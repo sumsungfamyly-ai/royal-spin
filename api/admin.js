@@ -3,7 +3,7 @@ import { get, set, del, sadd, srem, smembers, mget, num } from '../lib/db.js';
 import { tg } from '../lib/tg.js';
 import { getSettings, saveSettings } from '../lib/settings.js';
 
-const GS = ['slots', 'flip', 'dice', 'roulette', 'crash', 'mines', 'blackjack', 'rps', 'hilo', 'plinko', 'tower', 'limbo', 'penalty', 'chests', 'duel'];
+const GS = ['slots', 'flip', 'dice', 'roulette', 'crash', 'mines', 'blackjack', 'rps', 'hilo', 'durak', 'duel'];
 const secret = () => (process.env.ADMIN_PASSWORD || '') + '|' + (process.env.BOT_TOKEN || '');
 const sign = e => e + '.' + crypto.createHmac('sha256', secret()).update(String(e)).digest('hex');
 const eq = (a, b) => { a = Buffer.from(String(a)); b = Buffer.from(String(b)); return a.length === b.length && crypto.timingSafeEqual(a, b); };

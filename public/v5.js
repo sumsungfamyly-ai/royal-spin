@@ -1,6 +1,6 @@
 (function(){
 var Z=function(ms){return new Promise(function(z){setTimeout(z,ms)})};
-var GN={slots:'🎰 Слоты',flip:'🪙 Монетка',dice:'🎲 Кости',roulette:'🎡 Рулетка',crash:'🚀 Краш',mines:'💣 Мины',blackjack:'🃏 Блэкджек',rps:'✊ КНБ',hilo:'🔺 Хай-Лоу',plinko:'🔮 Плинко',tower:'🏰 Башня',limbo:'📈 Лимбо',penalty:'⚽ Пенальти',chests:'📦 Сундуки',wheel:'🎁 Колесо',duel:'⚔️ Дуэль'};
+var GN={slots:'🎰 Слоты',flip:'🪙 Монетка',dice:'🎲 Кости',roulette:'🎡 Рулетка',crash:'🚀 Краш',mines:'💣 Мины',blackjack:'🃏 Блэкджек',rps:'✊ КНБ',hilo:'🔺 Хай-Лоу',durak:'🃏 Дурак',duel:'⚔️ Дуэль'};
 /* ---- звуки ---- */
 var sndOn=true;try{sndOn=localStorage.getItem('snd')!=='0'}catch(e){}
 var AC;function tone(f,d,t,v){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();var o=AC.createOscillator(),g=AC.createGain(),n=AC.currentTime;o.type=t||'sine';o.frequency.value=f;o.connect(g);g.connect(AC.destination);g.gain.setValueAtTime(v||.08,n);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.start(n);o.stop(n+d)}catch(e){}}

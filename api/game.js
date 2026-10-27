@@ -30,8 +30,70 @@ const ACH = [
   { id: 'st7', t: '🔥 Неделя подряд', d: 'Серия входов 7 дней', n: 7, r: 1000, k: p => p.streak || 0 },
   { id: 'ref3', t: '📣 Амбассадор', d: 'Пригласи 3 друзей', n: 3, r: 1500, k: p => p.refs || 0 },
 ];
+/* ---- ДУРАК (подкидной, 2 игрока, 36 карт): карта = масть*9 + (ранг-6) ---- */
+const rk = c => c % 9 + 6, st = c => Math.floor(c / 9), other = r => (r === 'a' ? 'b' : 'a');
+const dBeats = (d, a, tr) => (st(d) === st(a) ? rk(d) > rk(a) : st(d) === tr && st(a) !== tr);
+const dRanks = m => { const s = new Set(); for (const [x, y] of m.table) { s.add(rk(x)); if (y != null) s.add(rk(y)); } return s; };
+const dCanAdd = m => { const h = m.hands[m.att], rs = dRanks(m); return m.table.length < m.limit && h.some(c => rs.has(rk(c))); };
+const dFill = m => { for (const r of [m.att, other(m.att)]) while (m.hands[r].length < 6 && m.deck.length) m.hands[r].push(m.deck.pop()); };
+function dNew(id, a, b, bet) {
+  const deck = Array.from({ length: 36 }, (_, i) => i);
+  for (let i = 35; i > 0; i--) { const j = rnd(i + 1); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  const hands = { a: [], b: [] }; for (let i = 0; i < 6; i++) { hands.a.push(deck.pop()); hands.b.push(deck.pop()); }
+  const trump = st(deck[0]), lt = h => Math.min(99, ...h.filter(c => st(c) === trump).map(rk));
+  const la = lt(hands.a), lb = lt(hands.b), att = la < lb ? 'a' : lb < la ? 'b' : (rnd(2) ? 'a' : 'b');
+  const now = Date.now();
+  return { id, a, b, bet, status: 'active', deck, hands, trump, table: [], att, turn: att, phase: 'attack', taking: false,
+    limit: Math.min(6, hands[other(att)].length), w: null, rev: 1, last: 'Игра началась', t: now, mv: now };
+}
+function dEnd(m) {   // после раунда: добор, проверка победы; возвращает 'a' | 'b' | 'draw' | null
+  dFill(m); m.table = []; m.taking = false;
+  if (!m.deck.length) { const ea = !m.hands.a.length, eb = !m.hands.b.length; if (ea && eb) return 'draw'; if (ea) return 'a'; if (eb) return 'b'; }
+  m.limit = Math.min(6, m.hands[other(m.att)].length); m.phase = 'attack'; m.turn = m.att; return null;
+}
+function dBito(m) { m.last = 'Бито'; m.att = other(m.att); return dEnd(m); }
+function dTake(m) { const d = other(m.att); for (const [x, y] of m.table) { m.hands[d].push(x); if (y != null) m.hands[d].push(y); } m.last = 'Соперник взял карты'; return dEnd(m); }
+function dMove(m, who, mv) {
+  if (m.status !== 'active') throw new E('Игра окончена');
+  if (m.turn !== who) throw new E('Сейчас не твой ход');
+  const hand = m.hands[who], def = other(m.att), c = Number(mv.c); let res = null;
+  const mine = () => { const i = hand.indexOf(c); if (i < 0) throw new E('У тебя нет этой карты'); hand.splice(i, 1); };
+  if (mv.k === 'attack') {
+    if (who !== m.att || m.phase !== 'attack') throw new E('Сейчас нельзя ходить');
+    if (!hand.includes(c)) throw new E('У тебя нет этой карты');
+    if (m.table.length && !dRanks(m).has(rk(c))) throw new E('Нужна карта того же ранга, что уже на столе');
+    if (m.table.length >= m.limit) throw new E('Больше карт подкидывать нельзя');
+    mine(); m.table.push([c, null]); m.last = m.taking ? 'Подкинули ещё карту' : 'Атака';
+    if (m.taking) { if (!dCanAdd(m)) res = dTake(m); } else { m.phase = 'defend'; m.turn = def; }
+  } else if (mv.k === 'defend') {
+    if (who !== def || m.phase !== 'defend') throw new E('Сейчас нельзя отбиваться');
+    const i = Number(mv.i), pr = m.table[i]; if (!pr || pr[1] != null) throw new E('Эту карту уже отбили');
+    if (!hand.includes(c)) throw new E('У тебя нет этой карты');
+    if (!dBeats(c, pr[0], m.trump)) throw new E('Эта карта не бьёт');
+    mine(); pr[1] = c; m.last = 'Отбито';
+    if (m.table.every(x => x[1] != null)) { m.phase = 'attack'; m.turn = m.att; if (!dCanAdd(m) || !hand.length) res = dBito(m); }
+  } else if (mv.k === 'take') {
+    if (who !== def || m.phase !== 'defend') throw new E('Сейчас нельзя взять');
+    m.taking = true; m.phase = 'attack'; m.turn = m.att; m.last = 'Соперник берёт, можно подкинуть';
+    if (!dCanAdd(m)) res = dTake(m);
+  } else if (mv.k === 'pass') {
+    if (who !== m.att || m.phase !== 'attack' || !m.table.length) throw new E('Нечего завершать');
+    if (m.taking) res = dTake(m); else { if (m.table.some(x => x[1] == null)) throw new E('Не все карты отбиты'); res = dBito(m); }
+  } else throw new E('Неизвестный ход');
+  m.rev++; m.mv = Date.now(); return res;
+}
+function dView(m, role) {
+  const opp = other(role), hand = [...m.hands[role]].sort((x, y) => x - y), legal = { atk: [], def: {} };
+  if (m.status === 'active' && m.turn === role) {
+    if (role === m.att) legal.atk = hand.filter(c => (!m.table.length || dRanks(m).has(rk(c))) && m.table.length < m.limit);
+    else for (const c of hand) { const ix = []; m.table.forEach((pr, i) => { if (pr[1] == null && dBeats(c, pr[0], m.trump)) ix.push(i); }); if (ix.length) legal.def[c] = ix; }
+  }
+  return { id: m.id, status: m.status, bet: m.bet, role, oppId: m[opp], oppN: m.hands ? m.hands[opp].length : 0, hand, table: m.table, deckN: m.deck ? m.deck.length : 0,
+    trump: m.trump, trumpCard: m.deck && m.deck.length ? m.deck[0] : null, att: m.att, turn: m.turn, phase: m.phase, taking: m.taking, limit: m.limit,
+    w: m.w, last: m.last, rev: m.rev, mv: m.mv, legal };
+}
 class E extends Error { constructor(m, c = 400) { super(m); this.code = c; } }
-const norm = p => { p.lvl ??= lvl(p.xp); p.q ??= { d: '', games: 0, wins: 0, bet: 0, done: [] }; p.ach ??= {}; p.hist ??= []; p.streak ??= 0; p.refs ??= 0; p.duelWins ??= 0; p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
+const norm = p => { p.dq ??= []; p.lvl ??= lvl(p.xp); p.q ??= { d: '', games: 0, wins: 0, bet: 0, done: [] }; p.ach ??= {}; p.hist ??= []; p.streak ??= 0; p.refs ??= 0; p.duelWins ??= 0; p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
 const pub = (p, up) => {
   const l = lvl(p.xp);
   return { id: String(p.id), nick: p.nick || p.name, avatar: p.avatar, bio: p.bio, balance: p.balance, level: l, xp: p.xp,
@@ -52,10 +114,6 @@ const draw = () => ({ r: rnd(13) + 1, s: rnd(4) });
 const val = h => { let t = 0, a = 0; for (const c of h) { t += c.r > 10 ? 10 : c.r === 1 ? 11 : c.r; if (c.r === 1) a++; } while (t > 21 && a) { t -= 10; a--; } return t; };
 const bjView = g => ({ player: g.player, dealer: [g.dealer[0]], pv: val(g.player) });
 const minesMult = (c, k, edge) => { let m = 1 - edge / 100; for (let j = 0; j < k; j++) m *= (25 - j) / (25 - c - j); return Math.floor(m * 100) / 100; };
-const PLINKO = [8, 3, 1.4, 0.7, 0.4, 0.7, 1.4, 3, 8];
-const towerMult = (k, edge) => { let m = 1 - edge / 100; for (let j = 0; j < k; j++) m *= 4 / 3; return Math.floor(m * 100) / 100; };
-const CHEST_PR = [0, 0.5, 1.2, 2.5, 8, 20], CHEST_W = [50, 22, 15, 8, 4, 1];
-const chestDraw = () => { let r = rnd(CHEST_W.reduce((a, x) => a + x, 0)), i = 0; while (r >= CHEST_W[i]) { r -= CHEST_W[i]; i++; } return CHEST_PR[i]; };
 
 export default async function handler(req, res) {
   let lk = null, mlk = null; const pend = [], held = [];
@@ -64,6 +122,14 @@ export default async function handler(req, res) {
     const b = req.body || {}, a = b.action;
     const u = verify(b.initData);
     if (!u) throw new E('Открой приложение через Telegram-бота', 401);
+    if (b.action === 'durak_state') {
+      const me0 = String(u.id), m = await get('durak:' + b.id);
+      if (!m || (m.a !== me0 && m.b !== me0)) throw new E('Игра не найдена', 404);
+      if (b.rev === m.rev && b.st === m.status) return res.json({ same: true });
+      const role = m.a === me0 ? 'a' : 'b', out0 = { durak: m.hands ? dView(m, role) : { id: m.id, status: m.status, bet: m.bet, role, oppId: m[other(role)], w: m.w, rev: m.rev } };
+      if (b.rev === undefined) { const o = await get('user:' + m[other(role)]); if (o) out0.opp = { id: String(o.id), nick: o.nick || o.name, avatar: o.avatar || '😎', level: lvl(o.xp) }; }
+      return res.json(out0);
+    }
     const NOLOCK = ['top', 'social', 'crash_poll', 'resume', 'bonus_info', 'history'], need = !NOLOCK.includes(b.action);
     if (need) { if (!(await lock('lock:' + u.id, 6))) throw new E('Подожди секунду…', 429); lk = 'lock:' + u.id; }
     const [S, raw] = await Promise.all([getSettings(), get('user:' + u.id)]);
@@ -310,64 +376,14 @@ export default async function handler(req, res) {
       let r = rnd(WT.reduce((x, y) => x + y, 0)), idx = 0; while (r >= WT[idx]) { r -= WT[idx]; idx++; }
       p.balance += WHEEL[idx]; p.wheelAt = Date.now(); out = { idx, prize: WHEEL[idx] };
     } else if (a === 'resume') {
-      out = {
-        hilo: p.hilo ? hv(p.hilo) : null, bj: p.bj ? bjView(p.bj) : null,
-        mines: p.mines ? { bet: p.mines.bet, cnt: p.mines.cnt, open: p.mines.open, mult: p.mines.open.length ? minesMult(p.mines.cnt, p.mines.open.length, S.edge) : 1 } : null,
-        tower: p.tower ? { bet: p.tower.bet, floor: p.tower.floor, picks: p.tower.picks, mult: towerMult(p.tower.floor, S.edge), next: towerMult(p.tower.floor + 1, S.edge) } : null,
-      };
-    } else if (a === 'plinko') {
-      on('plinko'); const bt = stake(b.bet); p.balance -= bt;
-      const path = Array.from({ length: 8 }, () => rnd(2)), slot = path.reduce((s, x) => s + x, 0);
-      const win = Math.floor(bt * PLINKO[slot] * (1 - S.edge / 100));
-      p.balance += win; await settle('plinko', bt, win); out = { path, slot, mult: PLINKO[slot], win };
-    } else if (a === 'tower_start') {
-      on('tower'); if (p.tower) { await settle('tower', p.tower.bet, 0); p.tower = null; }
-      const bt = stake(b.bet); p.balance -= bt;
-      p.tower = { bet: bt, floor: 0, bombs: Array.from({ length: 8 }, () => rnd(4)), picks: [] };
-      out = { started: true, next: towerMult(1, S.edge) };
-    } else if (a === 'tower_pick') {
-      const t = p.tower, col = Math.floor(Number(b.col));
-      if (!t) throw new E('Раунд не начат');
-      if (!(col >= 0 && col < 4)) throw new E('Выбери сундук');
-      if (t.bombs[t.floor] === col) {
-        const bombs = t.bombs; await settle('tower', t.bet, 0); p.tower = null;
-        out = { boom: true, col, floor: t.floor, bombs };
-      } else {
-        t.picks.push(col); t.floor++;
-        if (t.floor >= 8) {
-          const win = Math.floor(t.bet * towerMult(8, S.edge)); p.balance += win; await settle('tower', t.bet, win);
-          const bombs = t.bombs; p.tower = null; out = { cashed: true, win, mult: towerMult(8, S.edge), bombs, col };
-        } else out = { safe: true, col, floor: t.floor, mult: towerMult(t.floor, S.edge), next: towerMult(t.floor + 1, S.edge) };
-      }
-    } else if (a === 'tower_cash') {
-      const t = p.tower; if (!t || !t.floor) throw new E('Поднимись хотя бы на этаж');
-      const mult = towerMult(t.floor, S.edge), win = Math.floor(t.bet * mult), bombs = t.bombs;
-      p.balance += win; await settle('tower', t.bet, win); p.tower = null; out = { cashed: true, win, mult, bombs };
-    } else if (a === 'limbo') {
-      on('limbo'); const bt = stake(b.bet), t = Math.round(Number(b.target) * 100) / 100;
-      if (!(t >= 1.01 && t <= 100)) throw new E('Множитель от 1.01 до 100');
-      p.balance -= bt;
-      const u = (rnd(1e9) + 1) / 1e9, result = Math.min(1e6, Math.floor((1 - S.edge / 100) / u * 100) / 100);
-      const won = result >= t, win = won ? Math.floor(bt * t) : 0;
-      p.balance += win; await settle('limbo', bt, win); out = { result, target: t, win };
-    } else if (a === 'penalty') {
-      on('penalty'); const bt = stake(b.bet), side = ['l', 'c', 'r'].includes(b.side) ? b.side : null;
-      if (!side) throw new E('Выбери угол');
-      p.balance -= bt; const keeper = ['l', 'c', 'r'][rnd(3)], scored = side !== keeper;
-      const win = scored ? Math.floor(bt * 1.5 * (1 - S.edge / 100)) : 0;
-      p.balance += win; await settle('penalty', bt, win); out = { side, keeper, scored, win };
-    } else if (a === 'chests') {
-      on('chests'); const bt = stake(b.bet), pick = Math.floor(Number(b.pick));
-      if (!(pick >= 0 && pick < 4)) throw new E('Выбери сундук');
-      p.balance -= bt; const prizes = [chestDraw(), chestDraw(), chestDraw(), chestDraw()];
-      const win = Math.floor(bt * prizes[pick] * (1 - S.edge / 100));
-      p.balance += win; await settle('chests', bt, win); out = { prizes, pick, win };
+      out = { hilo: p.hilo ? hv(p.hilo) : null, bj: p.bj ? bjView(p.bj) : null, mines: p.mines ? { bet: p.mines.bet, cnt: p.mines.cnt, open: p.mines.open, mult: p.mines.open.length ? minesMult(p.mines.cnt, p.mines.open.length, S.edge) : 1 } : null };
     } else if (a === 'social') {
       const ms = (await mget(p.mq.slice(-12).map(i => 'match:' + i))).filter(Boolean);
-      const ids = new Set([...p.friends, ...p.reqIn, ...ms.flatMap(m => [m.a, m.b])]); ids.delete(me);
+      const dms = (await mget(p.dq.slice(-8).map(i => 'durak:' + i))).filter(Boolean).reverse();
+      const ids = new Set([...p.friends, ...p.reqIn, ...ms.flatMap(m => [m.a, m.b]), ...dms.flatMap(m => [m.a, m.b])]); ids.delete(me);
       const now = Date.now();
       const us = (await mget([...ids].map(i => 'user:' + i))).filter(Boolean);
-      out = { people: us.map(x => lite(x, now)), friends: p.friends, requests: p.reqIn,
+      out = { durak: dms.map(m => ({ id: m.id, a: m.a, b: m.b, bet: m.bet, status: m.status, w: m.w, t: m.t })), people: us.map(x => lite(x, now)), friends: p.friends, requests: p.reqIn,
         matches: ms.reverse().map(m => ({ ...m, moves: { a: !!m.moves?.a, b: !!m.moves?.b } })) };
     } else if (a === 'friend_add') {
       const id = String(b.id || '').trim();
@@ -385,6 +401,47 @@ export default async function handler(req, res) {
     } else if (a === 'friend_remove') {
       const id = String(b.id); p.friends = p.friends.filter(x => x !== id);
       const t = await xload(id); if (t) t.friends = t.friends.filter(x => x !== me);
+    } else if (a === 'duel_create' && b.type === 'durak') {
+      on('durak'); const id = String(b.friend);
+      if (!p.friends.includes(id)) throw new E('Играть можно только с друзьями');
+      const bt = stake(b.bet), t = await xload(id); if (!t) throw new E('Игрок не найден');
+      p.balance -= bt;
+      const m = { id: crypto.randomBytes(4).toString('hex'), a: me, b: id, bet: bt, status: 'pending', w: null, rev: 1, t: Date.now(), mv: Date.now() };
+      await set('durak:' + m.id, m); p.dq = [...p.dq, m.id].slice(-20); t.dq = [...t.dq, m.id].slice(-20);
+      try { await tg('sendMessage', { chat_id: id, text: `🃏 ${p.nick || p.name} зовёт тебя сыграть в Дурака! Ставка: ${bt} 🪙`, reply_markup: { inline_keyboard: [[{ text: '🃏 Открыть', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } catch {}
+      out = { msg: 'Вызов в Дурака отправлен', durakId: m.id };
+    } else if (a === 'durak_accept' || a === 'durak_decline' || a === 'durak_move' || a === 'durak_resign' || a === 'durak_claim') {
+      for (let i = 0; i < 8 && !mlk; i++) { if (await lock('mlock:' + b.id, 6)) mlk = 'mlock:' + b.id; else await sleep(120); }
+      if (!mlk) throw new E('Подожди секунду…', 429);
+      const m = await get('durak:' + b.id); if (!m || (m.a !== me && m.b !== me)) throw new E('Игра не найдена');
+      const role = m.a === me ? 'a' : 'b', prevRev = m.rev;
+      const finish = async w => {
+        const A = await xload(m.a), B = await xload(m.b), pot = m.bet * 2, fee = Math.floor(pot * S.duelFee / 100); m.status = 'done'; m.w = w; m.rev++;
+        let paid = pot;
+        if (w === 'draw') { A.balance += m.bet; B.balance += m.bet; } else if (w === 'x') { A.balance += m.bet; } else { const W = w === 'a' ? A : B; paid = pot - fee; W.balance += paid; W.wins++; W.duelWins = (W.duelWins || 0) + 1; W.biggest = Math.max(W.biggest, paid); }
+        if (w !== 'x') {
+          A.games++; B.games++; A.xp += Math.min(m.bet, 500); B.xp += Math.min(m.bet, 500);
+          track(A, 'durak', m.bet, w === 'a' ? paid : w === 'draw' ? m.bet : 0); track(B, 'durak', m.bet, w === 'b' ? paid : w === 'draw' ? m.bet : 0);
+          pend.push(Promise.all([incr('g:durak:bets', pot), incr('g:durak:payouts', w === 'draw' ? pot : paid), incr('g:durak:n', 1)]));
+        }
+      };
+      if (a === 'durak_decline') {
+        if (m.status !== 'pending') throw new E('Уже нельзя отменить');
+        await finish('x');
+      } else if (a === 'durak_accept') {
+        if (m.status !== 'pending' || m.b !== me) throw new E('Нельзя принять');
+        if (m.bet > p.balance) throw new E('Недостаточно фишек');
+        p.balance -= m.bet; Object.assign(m, dNew(m.id, m.a, m.b, m.bet));
+      } else if (a === 'durak_move') {
+        const r = dMove(m, role, b.mv || {}); if (r) await finish(r);
+      } else if (a === 'durak_resign') {
+        if (m.status !== 'active') throw new E('Игра окончена'); await finish(other(role));
+      } else {
+        if (m.status !== 'active' || m.turn === role) throw new E('Нельзя'); if (Date.now() - m.mv < 120000) throw new E('Подожди: у соперника ещё есть время на ход');
+        await finish(role);
+      }
+      if (a === 'durak_accept') { m.rev = prevRev + 1; m.mv = Date.now(); }
+      await set('durak:' + m.id, m); out = { durak: m.hands ? dView(m, role) : { id: m.id, status: m.status, bet: m.bet, role, w: m.w, rev: m.rev } };
     } else if (a === 'duel_create') {
       on('duel'); const id = String(b.friend);
       if (!p.friends.includes(id)) throw new E('Играть можно только с друзьями');
