@@ -13,6 +13,8 @@ const day = () => new Date().toISOString().slice(0, 10);
 const yday = () => new Date(Date.now() - 864e5).toISOString().slice(0, 10);
 const nextDay = () => { const n = new Date(); return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1) - Date.now(); };
 const STREAK = [1, 1.5, 2, 2.5, 3, 4, 5];
+const BONUS_CD = 22 * 36e5, STREAK_WIN = 46 * 36e5;
+const effStreak = (p, now) => (p.bonusAt && now - p.bonusAt <= STREAK_WIN ? p.streak : 0);
 const QUESTS = [
   { id: 'g10', t: 'Сыграй 10 раундов', k: 'games', n: 10, r: 150 },
   { id: 'w3', t: 'Выиграй 3 раза', k: 'wins', n: 3, r: 250 },
@@ -27,7 +29,7 @@ const ACH = [
   { id: 'fr3', t: '👥 Душа компании', d: 'Добавь 3 друзей', n: 3, r: 300, k: p => p.friends.length },
   { id: 'duel5', t: '⚔️ Дуэлянт', d: 'Выиграй 5 дуэлей', n: 5, r: 500, k: p => p.duelWins || 0 },
   { id: 'lv5', t: '⭐ Пятый уровень', d: 'Достигни 5 уровня', n: 5, r: 700, k: p => lvl(p.xp) },
-  { id: 'st7', t: '🔥 Неделя подряд', d: 'Серия входов 7 дней', n: 7, r: 1000, k: p => p.streak || 0 },
+  { id: 'st7', t: '🔥 Неделя подряд', d: 'Серия входов 7 дней', n: 7, r: 1000, k: p => p.bestStreak || p.streak || 0 },
   { id: 'ref3', t: '📣 Амбассадор', d: 'Пригласи 3 друзей', n: 3, r: 1500, k: p => p.refs || 0 },
 ];
 /* ---- ДУРАК (подкидной, 2 игрока, 36 карт): карта = масть*9 + (ранг-6) ---- */
@@ -93,12 +95,12 @@ function dView(m, role) {
     w: m.w, last: m.last, rev: m.rev, mv: m.mv, legal };
 }
 class E extends Error { constructor(m, c = 400) { super(m); this.code = c; } }
-const norm = p => { p.dq ??= []; p.lvl ??= lvl(p.xp); p.q ??= { d: '', games: 0, wins: 0, bet: 0, done: [] }; p.ach ??= {}; p.hist ??= []; p.streak ??= 0; p.refs ??= 0; p.duelWins ??= 0; p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
+const norm = p => { p.lb ??= { s: 'none' }; if (p.lastDay) { const t = Date.parse(p.lastDay + 'T12:00:00Z'); if (!p.bonusAt || t > p.bonusAt) p.bonusAt = t; delete p.lastDay; } p.bestStreak ??= p.streak || 0; p.dq ??= []; p.lvl ??= lvl(p.xp); p.q ??= { d: '', games: 0, wins: 0, bet: 0, done: [] }; p.ach ??= {}; p.hist ??= []; p.streak ??= 0; p.refs ??= 0; p.duelWins ??= 0; p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
 const pub = (p, up) => {
   const l = lvl(p.xp);
   return { id: String(p.id), nick: p.nick || p.name, avatar: p.avatar, bio: p.bio, balance: p.balance, level: l, xp: p.xp,
     xpFrom: 500 * (l - 1) ** 2, xpTo: 500 * l * l, wins: p.wins, games: p.games, biggest: p.biggest,
-    friends: p.friends.length, requests: p.reqIn.length, bonusIn: p.lastDay === day() ? nextDay() : 0, streak: p.lastDay === day() || p.lastDay === yday() ? p.streak : 0, refs: p.refs, lvlUp: up || 0, crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
+    friends: p.friends.length, requests: p.reqIn.length, bonusIn: p.bonusAt ? Math.max(0, p.bonusAt + BONUS_CD - Date.now()) : 0, streak: effStreak(p, Date.now()), refs: p.refs, lvlUp: up || 0, lb: p.lb.s, lbNote: p.lb.note || '', lbAt: p.lb.t || 0, crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
 };
 const lite = (x, now) => ({ id: String(x.id), nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), online: now - (x.lastSeen || 0) < 120000 });
 const pickSym = sy => {
@@ -131,7 +133,7 @@ export default async function handler(req, res) {
       return res.json(out0);
     }
     const NOLOCK = ['top', 'social', 'crash_poll', 'resume', 'bonus_info', 'history'], need = !NOLOCK.includes(b.action);
-    if (need) { if (!(await lock('lock:' + u.id, 6))) throw new E('Подожди секунду…', 429); lk = 'lock:' + u.id; }
+    if (need) { for (let i = 0; i < 14 && !lk; i++) { if (await lock('lock:' + u.id, 6)) lk = 'lock:' + u.id; else await sleep(110); } if (!lk) throw new E('Сервер занят, попробуй ещё раз', 429); }
     const [S, raw] = await Promise.all([getSettings(), get('user:' + u.id)]);
     const dirty = {};
     if (raw) dirty[String(u.id)] = norm(raw);
@@ -161,6 +163,7 @@ export default async function handler(req, res) {
     if (p.banned) throw new E('Аккаунт заблокирован', 403);
     p.name = u.first_name || u.username || p.name || 'Игрок'; p.lastSeen = Date.now();
     const me = String(p.id);
+    const tzo = Math.max(-840, Math.min(840, Math.round(Number(b.tz)) || 0)), today = () => new Date(Date.now() - tzo * 60000).toISOString().slice(0, 10);
     let save = need;
     let out = {};
 
@@ -173,10 +176,18 @@ export default async function handler(req, res) {
     };
     let lvlUp = 0;
     const track = (P, g, bet, win) => {
-      const d = day(); if (P.q.d !== d) P.q = { d, games: 0, wins: 0, bet: 0, done: [] };
+      const d = P === p ? today() : (P.q.d || today()); if (P.q.d !== d) P.q = { d, games: 0, wins: 0, bet: 0, done: [] };
       P.q.games++; P.q.bet += bet; if (win > bet) P.q.wins++;
       P.hist = [{ g, b: bet, w: win, t: Date.now() }, ...P.hist].slice(0, 20);
       const L = lvl(P.xp); if (L > P.lvl) { P.balance += 100 * L; P.lvl = L; if (P === p) lvlUp = L; }
+    };
+    const info = () => {
+      const now = Date.now(), eff = effStreak(p, now), qd = p.q.d === today() ? p.q : { games: 0, wins: 0, bet: 0, done: [] }, left = p.bonusAt ? Math.max(0, p.bonusAt + BONUS_CD - now) : 0;
+      return {
+        bonus: { streak: eff, can: left === 0, left, breaks: eff && p.bonusAt ? Math.max(0, p.bonusAt + STREAK_WIN - now) : 0, mults: STREAK, base: S.dailyBonus, next: Math.round(S.dailyBonus * STREAK[eff % 7]), best: p.bestStreak },
+        quests: QUESTS.map(q => ({ id: q.id, t: q.t, n: q.n, r: q.r, have: Math.min(qd[q.k], q.n), claimed: qd.done.includes(q.id) })),
+        ach: ACH.map(x => ({ id: x.id, t: x.t, d: x.d, n: x.n, r: x.r, have: Math.min(x.k(p), x.n), claimed: !!p.ach[x.id] })),
+      };
     };
     const hv = h => { const c = h.card, f = pr => (pr > 0 ? Math.floor(h.mult * (1 - S.edge / 100) / pr * 100) / 100 : null); return { card: c, mult: h.mult, steps: h.steps, bet: h.bet, mh: f((13 - c) / 13), ml: f((c - 1) / 13) }; };
     const settle = async (g, bet, win) => {
@@ -221,31 +232,27 @@ export default async function handler(req, res) {
       if (p.crash && crashM((Date.now() - p.crash.start) / 1000) >= p.crash.cp) { await settle('crash', p.crash.bet, 0); p.crash = null; }
       out = { cfg: { symbols: S.symbols, minBet: S.minBet, maxBet: S.maxBet, games: S.games, edge: S.edge, duelFee: S.duelFee, dailyBonus: S.dailyBonus, avatars: AV, wheel: WHEEL, wheel2: WHEEL2, wheelCost: S.wheelCost, faq: S.faq, refBonus: S.refBonus, streak: STREAK, bot: await get('bot:username') } };
     } else if (a === 'bonus') {
-      if (p.lastDay === day()) throw new E('Бонус уже получен сегодня. Заходи завтра!');
-      if (!(await once('claim:bonus:' + me + ':' + day(), 172800))) throw new E('Бонус уже получен сегодня. Заходи завтра!');
-      p.streak = p.lastDay === yday() ? p.streak + 1 : 1; p.lastDay = day();
+      const now = Date.now();
+      if (p.bonusAt && now - p.bonusAt < BONUS_CD) throw new E('Бонус ещё не готов');
+      if (!(await once('claim:bonus:' + me + ':' + (p.bonusAt || 0), 259200))) throw new E('Бонус уже получен');
+      const eff = effStreak(p, now); p.streak = eff + 1; p.bestStreak = Math.max(p.bestStreak, p.streak); p.bonusAt = now;
       const r = Math.round(S.dailyBonus * STREAK[(p.streak - 1) % 7]); p.balance += r;
-      out = { msg: `+${r} фишек! Серия: ${p.streak} дн. 🔥` };
+      out = { msg: `+${r} фишек! Серия: ${p.streak} дн.`, reward: r, info: info() };
     } else if (a === 'bonus_info') {
-      const qd = p.q.d === day() ? p.q : { games: 0, wins: 0, bet: 0, done: [] };
-      out = {
-        bonus: { streak: pub(p).streak, can: p.lastDay !== day(), mults: STREAK, base: S.dailyBonus, left: pub(p).bonusIn },
-        quests: QUESTS.map(q => ({ id: q.id, t: q.t, n: q.n, r: q.r, have: Math.min(qd[q.k], q.n), claimed: qd.done.includes(q.id) })),
-        ach: ACH.map(x => ({ id: x.id, t: x.t, d: x.d, n: x.n, r: x.r, have: Math.min(x.k(p), x.n), claimed: !!p.ach[x.id] })),
-      };
+      out = info();
     } else if (a === 'quest_claim') {
-      if (p.q.d !== day()) p.q = { d: day(), games: 0, wins: 0, bet: 0, done: [] };
+      if (p.q.d !== today()) p.q = { d: today(), games: 0, wins: 0, bet: 0, done: [] };
       const q = QUESTS.find(x => x.id === b.id); if (!q) throw new E('Задание не найдено');
       if (p.q.done.includes(q.id)) throw new E('Награда уже получена');
       if (p.q[q.k] < q.n) throw new E('Задание ещё не выполнено');
-      if (!(await once('claim:q:' + me + ':' + day() + ':' + q.id, 172800))) throw new E('Награда уже получена');
-      p.q.done.push(q.id); p.balance += q.r; out = { msg: `+${q.r} фишек!` };
+      if (!(await once('claim:q:' + me + ':' + today() + ':' + q.id, 172800))) throw new E('Награда уже получена');
+      p.q.done.push(q.id); p.balance += q.r; out = { msg: `+${q.r} фишек!`, reward: q.r, info: info() };
     } else if (a === 'ach_claim') {
       const x = ACH.find(y => y.id === b.id); if (!x) throw new E('Достижение не найдено');
       if (p.ach[x.id]) throw new E('Награда уже получена');
       if (x.k(p) < x.n) throw new E('Достижение ещё не получено');
       if (!(await once('claim:a:' + me + ':' + x.id, 0))) throw new E('Награда уже получена');
-      p.ach[x.id] = 1; p.balance += x.r; out = { msg: `+${x.r} фишек!` };
+      p.ach[x.id] = 1; p.balance += x.r; out = { msg: `+${x.r} фишек!`, reward: x.r, info: info() };
     } else if (a === 'history') {
       out = { hist: p.hist };
     } else if (a === 'hilo_start') {
@@ -278,8 +285,23 @@ export default async function handler(req, res) {
     } else if (a === 'top') {
       const by = ['balance', 'xp', 'biggest'].includes(b.by) ? b.by : 'balance';
       const ids = await smembers('users');
-      const all = (await mget(ids.slice(0, 1000).map(i => 'user:' + i))).filter(Boolean);
-      out = { by, top: all.sort((x, y) => (y[by] || 0) - (x[by] || 0)).slice(0, 15).map(x => ({ nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), value: by === 'xp' ? lvl(x.xp) : x[by] || 0 })) };
+      const [all, manual] = await Promise.all([mget(ids.slice(0, 1000).map(i => 'user:' + i)), get('lb:manual')]);
+      const real = all.filter(Boolean).filter(x => S.lbOpen || (x.lb && x.lb.s === 'approved'))
+        .map(x => ({ nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), value: by === 'xp' ? lvl(x.xp) : x[by] || 0, me: String(x.id) === me }));
+      const man = (manual || []).map(m => ({ nick: m.nick, avatar: m.avatar || '🏆', level: m.level || 1, value: by === 'xp' ? m.level || 1 : by === 'biggest' ? m.biggest || 0 : m.balance || 0 }));
+      const rows = real.concat(man).sort((x, y) => y.value - x.value), mi = rows.findIndex(r => r.me);
+      out = { by, open: !!S.lbOpen, rank: mi >= 0 ? mi + 1 : 0, top: rows.slice(0, 20), total: rows.length };
+    } else if (a === 'lb_apply') {
+      if (S.lbOpen) throw new E('Рейтинг открыт для всех, заявка не нужна');
+      const st = p.lb.s;
+      if (st === 'pending') throw new E('Заявка уже на рассмотрении');
+      if (st === 'approved') throw new E('Ты уже в рейтинге');
+      if (st === 'rejected' && Date.now() - (p.lb.t || 0) < 864e5) throw new E('Повторно подать заявку можно через сутки после отказа');
+      p.lb = { s: 'pending', t: Date.now() };
+      if (process.env.ADMIN_CHAT_ID) { try { await tg('sendMessage', { chat_id: process.env.ADMIN_CHAT_ID, text: `🏆 Новая заявка в рейтинг: ${p.nick || p.name} (ID ${p.id}), уровень ${lvl(p.xp)}, фишек ${p.balance}` }); } catch {} }
+      out = { msg: 'Заявка отправлена администратору' };
+    } else if (a === 'lb_leave') {
+      p.lb = { s: 'none', t: Date.now() }; out = { msg: 'Ты вышел из рейтинга' };
     } else if (a === 'slots') {
       on('slots'); const bt = stake(b.bet); p.balance -= bt;
       const r = [pickSym(S.symbols), pickSym(S.symbols), pickSym(S.symbols)];

@@ -13,7 +13,7 @@ var _sm=setMe;window.setMe=function(m){_sm(m);if(m.lvlUp){toast('🎉 Урове
 var hq=document.createElement('button');hq.className='hq';hq.textContent='?';hq.onclick=function(){nav('faq')};$('.top').insertBefore(hq,$('#bal'));
 var nb=document.createElement('button');nb.dataset.v='bonus';nb.innerHTML='<span>🎁</span>Бонусы';nb.onclick=function(){nav('bonus')};var nv=$('nav');nv.insertBefore(nb,nv.children[1]);
 ['bonus','faq'].forEach(function(id){var s=document.createElement('section');s.id='v-'+id;s.hidden=true;$('main').appendChild(s)});
-var _nav=nav;window.nav=function(v){_nav(v);if(v=='bonus')renderBonus();if(v=='faq')renderFaq()};
+var _nav=nav;window.nav=function(v){_nav(v);if(v=='bonus')window.renderBonus();if(v=='faq')renderFaq()};
 /* ---- БОНУСЫ: серия, задания, достижения ---- */
 function row(t,d,have,n,r,claimed,k,id){var pc=Math.round(have/n*100),ok=have>=n;
  return '<div class="qr"><div class="t"><div><b>'+t+'</b>'+(d?'<small>'+d+'</small>':'')+'</div>'+(claimed?'<small>✓ получено</small>':ok?'<button class="sm p" data-k="'+k+'" data-id="'+id+'">+'+fmt(r)+' 🪙</button>':'<small>🎁 '+fmt(r)+'</small>')+'</div><div class="bar"><i style="width:'+pc+'%"></i></div><small>'+fmt(have)+' / '+fmt(n)+'</small></div>'}
@@ -27,6 +27,7 @@ async function renderBonus(){var el=$('#v-bonus');el.innerHTML='<div class="card
  $('#cl').onclick=function(){this.disabled=true;claim('bonus')};
  $$('#v-bonus .sm[data-k]').forEach(function(b){b.onclick=function(){b.disabled=true;claim(b.dataset.k=='q'?'quest_claim':'ach_claim',{id:b.dataset.id})}})}
 var cbusy=false;function claim(a,d){if(cbusy)return;cbusy=true;api(a,d).then(function(x){cbusy=false;toast(x.msg);boom();snd('win');renderBonus()}).catch(function(e){cbusy=false;tg.showAlert(e.message);renderBonus()})}
+window.renderBonus=renderBonus;
 $('#bonus').onclick=function(){nav('bonus')};
 /* ---- FAQ ---- */
 function renderFaq(){var F=cfg.faq||[];

@@ -28,4 +28,3 @@
 .dkp.new .dkc{animation:dkin .4s}.dkp.tg{animation:tgl .6s infinite alternate;cursor:pointer}@keyframes tgl{to{filter:brightness(1.4)}}.dkem{color:#a7d8bd}
 .dkst{text-align:center;min-height:22px;font-weight:700;color:var(--g);margin:6px 0}.dkhn{display:flex;gap:6px;overflow-x:auto;padding:18px 4px 8px;justify-content:center;flex-wrap:nowrap}.dkhn.tight{justify-content:flex-start}.dkhn.tight .dkc+.dkc{margin-left:-12px}
 .dkbt{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
-html.light .rtab{background:#f6f0fd;border-color:#e0d3f3}html.light .rsel{color:#4a3a68}html.light .dkst{color:#a8730a}

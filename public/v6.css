@@ -25,20 +25,3 @@ body{background:#0b0613!important}
 /* ---- краш ---- */
 #cv{width:100%;height:auto;display:block;border-radius:14px;background:#0d0818;margin-bottom:10px}
 /* ---- светлая тема ---- */
-html.light{--c:#ffffff;--l:#cdbbe8;--g:#a8730a}
-html.light .bg3d{background:radial-gradient(circle at 50% -10%,#e7d6fb,#f6f1fd 65%)}html.light body{background:#f3ecfb!important;color:#1d1230}
-html.light .card{border-color:#e0d3f3;box-shadow:0 4px 14px rgba(80,40,140,.09)}html.light h3{color:#1d1230}
-html.light .bal,html.light .hq,html.light .thm{background:#fff;color:#8a5f00;border-color:#cdbbe8}
-html.light nav{background:#fff;border-top-color:#e0d3f3}html.light nav button{color:#7a6a99}html.light nav button.on{color:#a8730a}
-html.light input,html.light textarea{background:#f6f0fd;color:#1d1230;border-color:#cdbbe8}
-html.light .chips button,html.light .opt button{color:#1d1230;border-color:#cdbbe8}html.light .opt button.on{background:#efe3ff;border-color:#a8730a}
-html.light .gc{background:linear-gradient(160deg,#fff,#efe6fb);color:#1d1230;border-color:#d9c9f0;box-shadow:0 6px 14px rgba(80,40,140,.12)}
-html.light small,html.light .row small,html.light .gc small{color:#6b5b8a}html.light .row,html.light .qr,html.light .fa{border-bottom-color:#e8ddf6}
-html.light .sm{background:#efe6fb;color:#1d1230}html.light .sm.p{background:#f5c542;color:#000}html.light .sm.r{background:#fbd5de;color:#7f1d36}
-html.light .stats div,html.light .stc,html.light .lnk,html.light .avs button,html.light .how{background:#f6f0fd}html.light .how{border-color:#e0d3f3}
-html.light .stc b{color:#1d1230}html.light .stc.d b{color:#fff}html.light .stc.d{color:#d1fae5}
-html.light .bar{background:#e8ddf6}html.light .toast{background:#fff;color:#1d1230}html.light .logo{color:#a8730a}html.light .back{color:#8a5f00}
-html.light .fa p,html.light .how p{color:#4a3a68}html.light .big{color:#a8730a}html.light table td:last-child{color:#a8730a}
-html.light .msg.win,html.light .win{color:#15803d}html.light .lose{color:#c81e3a}html.light .hls{color:#a8730a}
-html.light .gc.off{opacity:.45}html.light .tbl{border-color:#cdbbe8}html.light .curt .msg{color:#fff}
-html.light .stc.d{background:#14532d;border-color:#22c55e}

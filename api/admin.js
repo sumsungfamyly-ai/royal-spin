@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { get, set, del, sadd, srem, smembers, mget, num } from '../lib/db.js';
+import { get, set, del, sadd, srem, smembers, mget, num, lock } from '../lib/db.js';
 import { tg } from '../lib/tg.js';
 import { getSettings, saveSettings } from '../lib/settings.js';
 
@@ -8,6 +8,15 @@ const secret = () => (process.env.ADMIN_PASSWORD || '') + '|' + (process.env.BOT
 const sign = e => e + '.' + crypto.createHmac('sha256', secret()).update(String(e)).digest('hex');
 const eq = (a, b) => { a = Buffer.from(String(a)); b = Buffer.from(String(b)); return a.length === b.length && crypto.timingSafeEqual(a, b); };
 const valid = t => { const e = Number((t || '').split('.')[0]); return e > Date.now() && eq(sign(e), t); };
+const sleep = ms => new Promise(z => setTimeout(z, ms));
+// изменение профиля игрока под его блокировкой, чтобы не затереть его действия
+async function withUser(id, fn) {
+  const k = 'lock:' + id; let ok = false;
+  for (let i = 0; i < 14 && !ok; i++) { ok = await lock(k, 6); if (!ok) await sleep(110); }
+  if (!ok) throw new Error('Игрок сейчас занят, попробуй ещё раз');
+  try { const u = await get('user:' + id); if (!u) return null; const r = await fn(u); await set('user:' + id, u); return r === undefined ? true : r; } finally { await del(k); }
+}
+const clip = (v, lo, hi, d) => { v = Math.round(Number(v)); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 const allUsers = async () => {
   const ids = (await smembers('users')).slice(0, 1000);
   return (await mget(ids.map(i => 'user:' + i))).filter(Boolean);
@@ -40,11 +49,34 @@ export default async function handler(req, res) {
         xp: u.xp || 0, friends: (u.friends || []).length, banned: !!u.banned, lastSeen: u.lastSeen || 0, created: u.created })) });
     }
     if (action === 'setBalance' || action === 'ban') {
-      const p = await get('user:' + d.id);
-      if (!p) return res.status(404).json({ error: 'Игрок не найден' });
-      if (action === 'setBalance') p.balance = Math.max(0, Math.round(Number(d.balance)) || 0); else p.banned = !!d.banned;
-      await set('user:' + d.id, p); return res.json({ ok: true });
+      const r = await withUser(d.id, u => { if (action === 'setBalance') u.balance = Math.max(0, Math.round(Number(d.balance)) || 0); else u.banned = !!d.banned; });
+      if (!r) return res.status(404).json({ error: 'Игрок не найден' }); return res.json({ ok: true });
     }
+    if (action === 'lbList') {
+      const us = await allUsers(), S = await getSettings(), manual = (await get('lb:manual')) || [];
+      const row = u => ({ id: u.id, nick: u.nick || u.name, avatar: u.avatar || '😎', balance: u.balance, level: 1 + Math.floor(Math.sqrt((u.xp || 0) / 500)), games: u.games || 0, t: (u.lb && u.lb.t) || 0, note: (u.lb && u.lb.note) || '' });
+      return res.json({ open: !!S.lbOpen, manual, pending: us.filter(u => u.lb && u.lb.s === 'pending').map(row).sort((x, y) => x.t - y.t), approved: us.filter(u => u.lb && u.lb.s === 'approved').map(row).sort((x, y) => y.balance - x.balance) });
+    }
+    if (action === 'lbDecide' || action === 'lbRemove') {
+      const ok = action === 'lbDecide' ? !!d.ok : false, note = String(d.note || '').slice(0, 200);
+      const r = await withUser(d.id, u => {
+        if (action === 'lbDecide' && !(u.lb && u.lb.s === 'pending')) throw new Error('Заявка уже обработана');
+        u.lb = action === 'lbRemove' ? { s: 'none', t: Date.now(), note } : { s: ok ? 'approved' : 'rejected', t: Date.now(), note };
+      });
+      if (!r) return res.status(404).json({ error: 'Игрок не найден' });
+      const text = action === 'lbRemove' ? '🏆 Ты удалён из рейтинга.' + (note ? ' ' + note : '') : ok ? '🏆 Заявка одобрена! Ты теперь в рейтинге.' : '🏆 Заявка в рейтинг отклонена.' + (note ? ' Причина: ' + note : '');
+      try { await tg('sendMessage', { chat_id: d.id, text }); } catch {}
+      return res.json({ ok: true });
+    }
+    if (action === 'lbManualSave') {
+      const nick = String(d.nick || '').trim().slice(0, 24); if (!nick) return res.status(400).json({ error: 'Укажи ник' });
+      const list = (await get('lb:manual')) || [], balance = clip(d.balance, 0, 1e12, 0);
+      const e = { id: d.id || crypto.randomBytes(4).toString('hex'), nick, avatar: String(d.avatar || '🏆').slice(0, 4), balance, level: clip(d.level, 1, 999, 1), biggest: clip(d.biggest, 0, 1e12, balance) };
+      const i = list.findIndex(x => x.id === e.id); if (i >= 0) list[i] = e; else { if (list.length >= 200) return res.status(400).json({ error: 'Слишком много записей' }); list.push(e); }
+      await set('lb:manual', list); return res.json({ ok: true, manual: list });
+    }
+    if (action === 'lbManualDelete') { const list = ((await get('lb:manual')) || []).filter(x => x.id !== d.id); await set('lb:manual', list); return res.json({ ok: true, manual: list }); }
+    if (action === 'lbMode') { const S = await getSettings(); S.lbOpen = !!d.open; await saveSettings(S); return res.json({ ok: true, open: S.lbOpen }); }
     if (action === 'giveAll') {
       const amt = Math.round(Number(d.amount)); if (!amt) return res.status(400).json({ error: 'Укажи сумму' });
       const us = await allUsers();
