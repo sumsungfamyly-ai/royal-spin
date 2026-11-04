@@ -17,13 +17,14 @@ var _nav=nav;window.nav=function(v){_nav(v);if(v=='bonus')window.renderBonus();i
 /* ---- БОНУСЫ: серия, задания, достижения ---- */
 function row(t,d,have,n,r,claimed,k,id){var pc=Math.round(have/n*100),ok=have>=n;
  return '<div class="qr"><div class="t"><div><b>'+t+'</b>'+(d?'<small>'+d+'</small>':'')+'</div>'+(claimed?'<small>✓ получено</small>':ok?'<button class="sm p" data-k="'+k+'" data-id="'+id+'">+'+fmt(r)+' 🪙</button>':'<small>🎁 '+fmt(r)+'</small>')+'</div><div class="bar"><i style="width:'+pc+'%"></i></div><small>'+fmt(have)+' / '+fmt(n)+'</small></div>'}
-async function renderBonus(){var el=$('#v-bonus');el.innerHTML='<div class="card"><small>Загрузка…</small></div>';var r;
- try{r=await api('bonus_info')}catch(e){el.innerHTML='<div class="card"><div class="msg lose">'+esc(e.message)+'</div></div>';return}
+async function renderBonus(){var el=$('#v-bonus');el.setAttribute('aria-busy','true');el.innerHTML=window.loadingSkeleton(4);var r;
+ try{r=await api('bonus_info')}catch(e){el.removeAttribute('aria-busy');el.innerHTML='<div class="card"><div class="msg lose">'+esc(e.message)+'</div></div>';return}
+ el.removeAttribute('aria-busy');
  var B=r.bonus,cur=B.streak,done=B.can?cur%7:((cur-1)%7)+1;
  var cells=B.mults.map(function(m,i){return '<div class="stc'+(i<done?' d':'')+(B.can&&i==done?' n':'')+'"><b>'+(i+1)+'</b>'+fmt(Math.round(B.base*m))+'</div>'}).join('');
  el.innerHTML='<div class="card"><h3>🔥 Серия входов: '+cur+' дн.</h3><div class="stk">'+cells+'</div><button class="go" id="cl"'+(B.can?'':' disabled')+'>'+(B.can?'Забрать бонус':'Приходи завтра, награда больше')+'</button></div>'
-  +'<div class="card"><h3>📋 Задания на сегодня</h3>'+r.quests.map(function(q){return row(q.t,'',q.have,q.n,q.r,q.claimed,'q',q.id)}).join('')+'</div>'
-  +'<div class="card"><h3>🏅 Достижения</h3>'+r.ach.map(function(a){return row(a.t,a.d,a.have,a.n,a.r,a.claimed,'a',a.id)}).join('')+'</div>';
+  +'<div class="card" id="season-quests"><h3>📋 Задания на сегодня</h3>'+r.quests.map(function(q){return row(q.t,'',q.have,q.n,q.r,q.claimed,'q',q.id)}).join('')+'</div>'
+  +'<div class="card" id="achievements"><h3>🏅 Достижения</h3>'+r.ach.map(function(a){return row(a.t,a.d,a.have,a.n,a.r,a.claimed,'a',a.id)}).join('')+'</div>';
  $('#cl').onclick=function(){this.disabled=true;claim('bonus')};
  $$('#v-bonus .sm[data-k]').forEach(function(b){b.onclick=function(){b.disabled=true;claim(b.dataset.k=='q'?'quest_claim':'ach_claim',{id:b.dataset.id})}})}
 var cbusy=false;function claim(a,d){if(cbusy)return;cbusy=true;api(a,d).then(function(x){cbusy=false;toast(x.msg);boom();snd('win');renderBonus()}).catch(function(e){cbusy=false;tg.showAlert(e.message);renderBonus()})}
@@ -49,7 +50,8 @@ var _pf=profile;window.profile=function(){_pf();var el=document.createElement('d
  el.innerHTML='<h3>⚙️ Ещё</h3><div class="opt"><button id="sn">'+(sndOn?'🔊 Звук вкл':'🔇 Звук выкл')+'</button><button id="hs">📜 История</button><button id="fq2">❓ FAQ</button></div><div id="hl"></div>';$('#v-me').appendChild(el);
  $('#sn').onclick=function(){sndOn=!sndOn;try{localStorage.setItem('snd',sndOn?'1':'0')}catch(e){}this.textContent=sndOn?'🔊 Звук вкл':'🔇 Звук выкл'};
  $('#fq2').onclick=function(){nav('faq')};
- $('#hs').onclick=function(){api('history').then(function(r){$('#hl').innerHTML=r.hist.length?r.hist.map(function(h){var w=h.w>h.b;return '<div class="row"><div class="n"><b>'+(GN[h.g]||h.g)+'</b><small>'+new Date(h.t).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+' · ставка '+fmt(h.b)+'</small></div><b class="'+(w?'win':h.w==h.b?'':'lose')+'">'+(w?'+'+fmt(h.w-h.b):h.w==h.b?'0':'−'+fmt(h.b))+'</b></div>'}).join(''):'<small>Пока пусто</small>'}).catch(function(e){tg.showAlert(e.message)})}};
+ window.openHistory=function(){var target=$('#hl');if(!target)return;target.innerHTML=window.loadingSkeleton(3);api('history').then(function(r){target.innerHTML=r.hist.length?r.hist.map(function(h){var w=h.w>h.b;return '<div class="row"><div class="n"><b>'+(GN[h.g]||h.g)+'</b><small>'+new Date(h.t).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+' · ставка '+fmt(h.b)+'</small></div><b class="'+(w?'win':h.w==h.b?'':'lose')+'">'+(w?'+'+fmt(h.w-h.b):h.w==h.b?'0':'−'+fmt(h.b))+'</b></div>'}).join(''):'<small>Пока пусто</small>'}).catch(function(e){target.innerHTML='<div class="msg lose">'+esc(e.message)+'</div>';tg.showAlert(e.message)})};
+ $('#hs').onclick=window.openHistory};
 /* ---- плитка и игра ХАЙ-ЛОУ ---- */
 var _rg=renderGames;window.renderGames=function(){_rg();var g=$('#gg'),b=document.createElement('button');b.className='gc'+(cfg.games.hilo?'':' off');b.innerHTML='<span class="pic"><em>🔺</em></span>Хай-Лоу<small>выше или ниже</small>';
  b.onclick=function(){if(!cfg.games.hilo)return tg.showAlert('Игра временно отключена');openGame('hilo')};g.insertBefore(b,g.lastElementChild)};

@@ -32,7 +32,7 @@ function draw(){var box=$('#gsec');if(!box)return;var list=GM.filter(match),h=''
  else if(tab!='all')h+='<div class="sh"><span>'+(SEC[tab]||'')+'</span><i>'+list.length+'</i></div><div class="sg">'+list.map(tile).join('')+'</div>';
  else Object.keys(SEC).forEach(function(c){var l=list.filter(function(g){return g.cat==c});if(l.length)h+='<div class="sh"><span>'+SEC[c]+'</span><i>'+l.length+'</i></div><div class="sg">'+l.map(tile).join('')+'</div>'});
  box.innerHTML=h;$$('#gsec [data-g]').forEach(function(b){b.onclick=function(){open_(b.dataset.g)}})}
-window.renderGames=function(){var gg=$('#gg');if(!gg||typeof cfg==='undefined'||!cfg)return;gg.className='';
+window.renderGames=function(){var gg=$('#gg');if(!gg||typeof cfg==='undefined'||!cfg)return;gg.removeAttribute('aria-busy');gg.className='';
  gg.innerHTML='<div class="gsr">'+svg('search','gsi')+'<input id="gs" placeholder="Найти игру" autocomplete="off" value="'+q.replace(/"/g,'')+'"></div><div class="cats" id="cats">'+CATS.map(function(c){return '<button class="ct'+(c[0]==tab?' on':'')+'" data-c="'+c[0]+'">'+c[1]+'</button>'}).join('')+'</div><div id="gsec"></div>';
  $$('#cats .ct').forEach(function(b){b.onclick=function(){tab=b.dataset.c;q='';$('#gs').value='';$$('#cats .ct').forEach(function(x){x.classList.toggle('on',x==b)});draw()}});
  $('#gs').oninput=function(){q=this.value.trim();draw()};
