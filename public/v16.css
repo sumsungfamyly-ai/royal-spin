@@ -1,0 +1,48 @@
+/* v16: магазин, загрузка, кастомизация */
+#ldb{position:fixed;top:0;left:0;right:0;height:3px;z-index:998;opacity:0;transition:opacity .25s;background:linear-gradient(90deg,transparent,#ff8fd8,#ffd36e,#7dffd1,#7db8ff,transparent);background-size:50% 100%;background-repeat:no-repeat;animation:ldb 1s linear infinite}
+#ldb.on{opacity:1}@keyframes ldb{from{background-position:-50% 0}to{background-position:150% 0}}
+nav button{min-width:0}nav button span{font-size:22px}
+.shh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.shh h2{margin:0}
+.sht{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px}.sht button{flex:none;min-height:42px;padding:0 16px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:inherit;font-weight:700}.sht button.on{background:linear-gradient(135deg,#d8b872,#ffe7a8);color:#1a1409;border:0}
+.shg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.shc{padding:14px 10px;border-radius:20px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center;background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.12);animation:shin .35s both}
+.shc.eq{border-color:#ffd36e;box-shadow:0 0 0 1px #ffd36e,0 8px 24px rgba(255,211,110,.25)}
+@keyframes shin{from{opacity:0;transform:translateY(10px)}}
+.shc b{font-size:14px}.shc small{opacity:.7}.shpv{min-height:70px;display:grid;place-items:center;font-size:34px;width:100%}
+.shc button{width:100%;min-height:42px;border-radius:13px;border:0;font-weight:800;font-size:14px;background:linear-gradient(115deg,#ff8fd8,#ffd36e,#7dffd1,#7db8ff);color:#171021}
+.shc button.sec{background:rgba(255,255,255,.1);color:inherit;border:1px solid rgba(255,255,255,.18)}.shc button:disabled{opacity:.45}
+.shsw{width:100%;height:64px;border-radius:14px;border:1px solid rgba(255,255,255,.2)}
+.chp{font-weight:900;font-size:22px;padding:8px 14px;border-radius:12px;background:rgba(255,255,255,.07)}
+/* рамки аватара (на себе и в превью) */
+.av{position:relative}
+.fr-gold,body[data-fr=gold] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #ffd36e,0 0 14px rgba(255,211,110,.8)!important}
+.fr-neon,body[data-fr=neon] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #7dffd1,0 0 18px #7dffd1,0 0 36px rgba(125,255,209,.5)!important}
+.fr-flame,body[data-fr=flame] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #ff7a2f,0 0 16px #ff4d2f;animation:frfl .7s ease-in-out infinite alternate}
+.fr-rainbow,body[data-fr=rainbow] :is(#v-me .av,.row.mine .av){animation:frrb 3s linear infinite}
+.fr-royal,body[data-fr=royal] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #ffd36e,0 0 0 6px #7a4be0,0 0 22px rgba(122,75,224,.7)}
+.fr-royal::after,body[data-fr=royal] :is(#v-me .av,.row.mine .av)::after{content:"👑";position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:18px}
+@keyframes frfl{to{box-shadow:0 0 0 3px #ffb02f,0 0 26px #ff3d2f}}
+@keyframes frrb{0%{box-shadow:0 0 0 3px #ff8fd8,0 0 16px #ff8fd8}25%{box-shadow:0 0 0 3px #ffd36e,0 0 16px #ffd36e}50%{box-shadow:0 0 0 3px #7dffd1,0 0 16px #7dffd1}75%{box-shadow:0 0 0 3px #7db8ff,0 0 16px #7db8ff}100%{box-shadow:0 0 0 3px #ff8fd8,0 0 16px #ff8fd8}}
+/* стили фишек */
+html[data-cs=emerald] .bal,html[data-cs=emerald] .chp{background-image:linear-gradient(115deg,#9bffd0,#1fbf7a,#d6ffe9,#1fbf7a)}
+html[data-cs=ruby] .bal,html[data-cs=ruby] .chp{background-image:linear-gradient(115deg,#ffb3bd,#e0394e,#ffd1d6,#e0394e)}
+html[data-cs=sapphire] .bal,html[data-cs=sapphire] .chp{background-image:linear-gradient(115deg,#b3d4ff,#2f6fd6,#d6e7ff,#2f6fd6)}
+html[data-cs=holo] .bal,html[data-cs=holo] .chp{background-image:linear-gradient(115deg,#ff8fd8,#7dffd1,#7db8ff,#ffd36e,#c49bff)}
+.chp[data-c]{background-size:250% 250%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:irsl 5s linear infinite}
+html[data-cs=emerald] .plb u{background:radial-gradient(circle at 35% 30%,#d6ffe9,#1fbf7a 55%,#0b5b38)!important;box-shadow:0 0 14px #1fbf7a!important}
+html[data-cs=ruby] .plb u{background:radial-gradient(circle at 35% 30%,#ffd1d6,#e0394e 55%,#6b0f1c)!important;box-shadow:0 0 14px #e0394e!important}
+html[data-cs=sapphire] .plb u{background:radial-gradient(circle at 35% 30%,#d6e7ff,#2f6fd6 55%,#0d2a66)!important;box-shadow:0 0 14px #2f6fd6!important}
+html[data-cs=holo] .plb u{background:conic-gradient(#ff8fd8,#7dffd1,#7db8ff,#ffd36e,#ff8fd8)!important;box-shadow:0 0 16px #c49bff!important}
+/* темы */
+html:not(.light)[data-th=sunset] body::before{background:radial-gradient(90% 55% at 15% -5%,rgba(255,138,76,.35),transparent 60%),radial-gradient(80% 50% at 90% 5%,rgba(255,80,140,.32),transparent 60%),radial-gradient(90% 60% at 50% 105%,rgba(122,75,224,.3),transparent 60%)}
+html:not(.light)[data-th=neon] body::before{background:radial-gradient(90% 55% at 10% 0,rgba(0,255,230,.28),transparent 60%),radial-gradient(80% 50% at 95% 10%,rgba(255,0,170,.3),transparent 60%),radial-gradient(90% 60% at 50% 105%,rgba(80,60,255,.28),transparent 60%)}
+html:not(.light)[data-th=emerald] body::before{background:radial-gradient(90% 55% at 15% -5%,rgba(31,191,122,.34),transparent 60%),radial-gradient(80% 50% at 90% 5%,rgba(0,180,200,.26),transparent 60%),radial-gradient(90% 60% at 50% 105%,rgba(210,255,120,.16),transparent 60%)}
+html:not(.light)[data-th=midnight] body::before{background:radial-gradient(90% 55% at 20% -5%,rgba(60,80,200,.36),transparent 60%),radial-gradient(80% 50% at 90% 5%,rgba(255,211,110,.2),transparent 60%),radial-gradient(90% 60% at 50% 105%,rgba(30,20,90,.5),transparent 60%)}
+html.light[data-th=sunset] body::before{background:radial-gradient(90% 55% at 15% -5%,rgba(255,170,110,.55),transparent 60%),radial-gradient(80% 50% at 90% 5%,rgba(255,130,180,.5),transparent 60%),radial-gradient(90% 60% at 50% 105%,rgba(180,150,255,.45),transparent 60%)}
+/* эффекты */
+.fxb{position:absolute;animation:fxbang 1s ease-out both}@keyframes fxbang{0%{transform:scale(0);opacity:1}60%{transform:scale(1.4);opacity:1}100%{transform:scale(1.9);opacity:0}}
+/* уведомления в профиле */
+#ntf{display:flex;align-items:center;gap:12px;margin-top:12px}#ntf div{flex:1}#ntf small{display:block;opacity:.7;margin-top:2px}
+.swt{width:52px;height:30px;border-radius:15px;background:rgba(255,255,255,.18);position:relative;flex:none;transition:background .2s;border:0}.swt::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}.swt.on{background:linear-gradient(115deg,#7dffd1,#7db8ff)}.swt.on::after{transform:translateX(22px)}
+nav button{font-size:9.5px!important;letter-spacing:0!important;padding:0 1px!important;gap:3px!important;overflow:hidden}
+nav button svg,nav button .svgic{width:24px!important;height:24px!important}nav button span{font-size:21px;line-height:1}

@@ -9,9 +9,11 @@ G.blockblast={t:'Блок Бласт',i:'🧩',d:'до x25',r:function(){var st=
  $('#gbody').innerHTML='<div class="card" id="bbc">'+betBox()+'<button class="go" id="go">НАЧАТЬ ИГРУ</button><div class="msg" id="m"></div><small>Перетаскивай фигуры на поле 8×8. Заполненные линии сгорают и дают очки. 150 очков = x1 к ставке, максимум x25. Когда ходов нет, выигрыш выплачивается сам.</small></div>';
  function draw(){var c=$('#bbc');
   c.innerHTML='<div class="bbs"><span>Очки <b>'+st.sc+'</b></span><span>Ставка <b>'+fmt(st.bet)+'</b></span><span>x<b>'+st.mult+'</b></span></div><div class="bbg" id="bbg">'+st.bd.map(function(v){return'<div'+(v?' class="c'+v+'"':'')+'></div>'}).join('')+'</div><div class="bbpv">Перетащи фигуру на поле</div><div class="bbp">'+st.pcs.map(function(s,i){return'<button data-i="'+i+'"'+(s===null?' disabled':'')+'>'+(s===null?'':mini(s,18))+'</button>'}).join('')+'</div><button class="go" id="cash">ЗАБРАТЬ x'+st.mult+' ('+fmt(Math.floor(st.bet*st.mult))+')</button><div class="msg" id="m"></div>';
-  $$('.bbp button:not(:disabled)').forEach(function(b){b.onpointerdown=function(e){drag(e,b)}});
+  fit();$$('.bbp button:not(:disabled)').forEach(function(b){b.onpointerdown=function(e){drag(e,b)}});
   $('#cash').onclick=function(){if(busy)return;busy=true;api('bb_cash').then(function(r){st=Object.assign(st,r.bb);draw();end(r)}).catch(function(e){tip(e.message,1)}).then(function(){busy=false})}}
- function drag(e,btn){if(busy)return;e.preventDefault();var s=st.pcs[+btn.dataset.i],d=dims(s),g=$('#bbg').getBoundingClientRect(),cs=(g.width-12)/8,cells=$$('#bbg div'),ghost=document.createElement('div');
+ function fit(){var g=$('#bbg');if(!g)return;var s=Math.floor(Math.min(innerWidth-24,innerHeight*.47));g.style.width=g.style.height=s+'px';g.style.margin='0 auto'}
+ window.addEventListener('resize',fit);
+ function drag(e,btn){if(busy)return;e.preventDefault();var s=st.pcs[+btn.dataset.i],d=dims(s),g=$('#bbg').getBoundingClientRect(),cs=(g.width-33)/8,cells=$$('#bbg div'),ghost=document.createElement('div');
   ghost.className='bbghost';ghost.style.gridTemplateColumns='repeat('+d.w+','+cs+'px)';ghost.innerHTML=SH[s].length?'':'';
   for(var r=0;r<d.h;r++)for(var c=0;c<d.w;c++){var on=SH[s].some(function(q){return q[0]==r&&q[1]==c}),i=document.createElement('i');i.style.cssText='width:'+cs+'px;height:'+cs+'px;background:'+(on?COL[1+s%6]:'transparent');ghost.appendChild(i)}
   document.body.appendChild(ghost);btn.classList.add('drag');var pos=null;
@@ -29,7 +31,7 @@ G.blockblast={t:'Блок Бласт',i:'🧩',d:'до x25',r:function(){var st=
    var cleared=before.map(function(v,k){return v&&!r.bb.bd[k]?k:-1}).filter(function(k){return k>=0});
    if(cleared.length){await sleep(160);cleared.forEach(function(k){cells[k].className='c'+(before[k]||1)+' fl'});await sleep(340)}
    st=Object.assign(st,r.bb);draw();if(r.over)end(r)}catch(e){tip(e.message,1)}busy=false}
- function end(r){$$('.bbp button,#cash').forEach(function(b){b.disabled=true});res('#m',r.win,st.bet);var a=document.createElement('button');a.className='go';a.textContent='ИГРАТЬ СНОВА';a.onclick=function(){G.blockblast.r()};$('#bbc').appendChild(a)}
+ function end(r){$$('.bbp button,#cash').forEach(function(b){b.disabled=true});res('#m',r.win,st.bet);var pr=r.win-st.bet;if(window.fx){if(pr>0)fx.win({kind:'bb',title:'Отлично! x'+r.mult,sub:'+'+fmt(r.win)+' 🪙'});else if(pr<0)fx.lose({kind:'bb',title:'Нет ходов',sub:'−'+fmt(st.bet-r.win)+' 🪙'})}var a=document.createElement('button');a.className='go';a.textContent='ИГРАТЬ СНОВА';a.onclick=function(){G.blockblast.r()};$('#bbc').appendChild(a)}
  $('#go').onclick=function(){if(busy)return;busy=true;api('bb_start',{bet:bet()}).then(function(r){st=r.bb;draw()}).catch(function(e){fail('#m',e)}).then(function(){busy=false})};
  api('bb_state').then(function(r){if(r.bb){st=r.bb;draw()}}).catch(function(){})}};
 })();

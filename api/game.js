@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { get, set, del, sadd, smembers, mget, incr, lock, once } from '../lib/db.js';
 import { verify, tg } from '../lib/tg.js';
 import { getSettings } from '../lib/settings.js';
+import { SHOP, SHOP_CATS } from '../lib/shop.js';
 
 const rnd = n => crypto.randomInt(n);
 const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
@@ -95,12 +96,12 @@ function dView(m, role) {
     w: m.w, last: m.last, rev: m.rev, mv: m.mv, legal };
 }
 class E extends Error { constructor(m, c = 400) { super(m); this.code = c; } }
-const norm = p => { p.lb ??= { s: 'none' }; if (p.lastDay) { const t = Date.parse(p.lastDay + 'T12:00:00Z'); if (!p.bonusAt || t > p.bonusAt) p.bonusAt = t; delete p.lastDay; } p.bestStreak ??= p.streak || 0; p.dq ??= []; p.lvl ??= lvl(p.xp); p.q ??= { d: '', games: 0, wins: 0, bet: 0, done: [] }; p.ach ??= {}; p.hist ??= []; p.streak ??= 0; p.refs ??= 0; p.duelWins ??= 0; p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
+const norm = p => { p.lb ??= { s: 'none' }; if (p.lastDay) { const t = Date.parse(p.lastDay + 'T12:00:00Z'); if (!p.bonusAt || t > p.bonusAt) p.bonusAt = t; delete p.lastDay; } p.bestStreak ??= p.streak || 0; p.dq ??= []; p.shop ??= { own: [], eq: {} }; p.notif ??= { on: true, last: 0 }; p.lvl ??= lvl(p.xp); p.q ??= { d: '', games: 0, wins: 0, bet: 0, done: [] }; p.ach ??= {}; p.hist ??= []; p.streak ??= 0; p.refs ??= 0; p.duelWins ??= 0; p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
 const pub = (p, up) => {
   const l = lvl(p.xp);
   return { id: String(p.id), nick: p.nick || p.name, avatar: p.avatar, bio: p.bio, balance: p.balance, level: l, xp: p.xp,
     xpFrom: 500 * (l - 1) ** 2, xpTo: 500 * l * l, wins: p.wins, games: p.games, biggest: p.biggest,
-    friends: p.friends.length, requests: p.reqIn.length, bonusIn: p.bonusAt ? Math.max(0, p.bonusAt + BONUS_CD - Date.now()) : 0, streak: effStreak(p, Date.now()), refs: p.refs, lvlUp: up || 0, lb: p.lb.s, lbNote: p.lb.note || '', lbAt: p.lb.t || 0, crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
+    friends: p.friends.length, requests: p.reqIn.length, bonusIn: p.bonusAt ? Math.max(0, p.bonusAt + BONUS_CD - Date.now()) : 0, streak: effStreak(p, Date.now()), refs: p.refs, lvlUp: up || 0, eq: p.shop?.eq || {}, notif: p.notif?.on !== false, lb: p.lb.s, lbNote: p.lb.note || '', lbAt: p.lb.t || 0, crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
 };
 const lite = (x, now) => ({ id: String(x.id), nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), online: now - (x.lastSeen || 0) < 120000 });
 const pickSym = sy => {
@@ -553,8 +554,24 @@ export default async function handler(req, res) {
         m.moves[role] = b.move;
         if (m.moves.a && m.moves.b) await finishDuel(m); else await set('match:' + m.id, m);
       }
+    } else if (a === 'shop') {
+      out = { shop: { items: SHOP, own: p.shop.own, eq: p.shop.eq } };
+    } else if (a === 'shop_buy') {
+      const it = SHOP.find(x => x.id === String(b.id)); if (!it) throw new E('Товар не найден');
+      if (p.shop.own.includes(it.id)) throw new E('Уже куплено');
+      if (p.balance < it.price) throw new E('Не хватает фишек');
+      p.balance -= it.price; p.shop.own.push(it.id); p.shop.eq[it.cat] = it.id;
+      out = { shop: { items: SHOP, own: p.shop.own, eq: p.shop.eq } };
+    } else if (a === 'shop_eq') {
+      const id = String(b.id || ''), cat = String(b.cat || '');
+      if (!id) { if (!SHOP_CATS.includes(cat)) throw new E('Неверная категория'); delete p.shop.eq[cat]; }
+      else { const it = SHOP.find(x => x.id === id); if (!it || !p.shop.own.includes(id)) throw new E('Сначала купи этот товар'); p.shop.eq[it.cat] = id; }
+      out = { shop: { items: SHOP, own: p.shop.own, eq: p.shop.eq } };
+    } else if (a === 'notif_set') {
+      p.notif.on = !!b.on; out = {};
     } else throw new E('unknown action');
 
+    p.seen = Date.now();
     await Promise.all([...pend, ...(save ? Object.entries(dirty).map(([id, x]) => set('user:' + id, x)) : [])]);
     await relAll();
     res.json({ me: pub(p, lvlUp), ...out });

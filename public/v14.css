@@ -4,7 +4,7 @@ body.fs #v-game .back{display:none}
 body.fs #v-game #gbody{flex:1;display:flex;min-height:0}
 body.fs #v-game .card{flex:1;min-height:0!important;width:100%;gap:10px;justify-content:space-between!important;padding:0!important}
 body.fs .bbs{margin:44px 4px 0}
-body.fs .bbg{width:min(100%,50dvh)!important;touch-action:none;user-select:none;-webkit-user-select:none}
+body.fs .bbg{flex:none;max-width:100%;touch-action:none;user-select:none;-webkit-user-select:none}
 body.fs .bbp{min-height:0;margin:0!important;align-items:stretch}body.fs .bbp button{min-height:90px!important;touch-action:none;user-select:none;-webkit-user-select:none;display:grid;place-items:center}
 body.fs .bbp button.drag{opacity:.25}
 .bbghost{position:fixed;z-index:200;pointer-events:none;display:grid;gap:3px;opacity:.95;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5));transform:scale(1.04)}
