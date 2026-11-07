@@ -117,6 +117,33 @@ const val = h => { let t = 0, a = 0; for (const c of h) { t += c.r > 10 ? 10 : c
 const bjView = g => ({ player: g.player, dealer: [g.dealer[0]], pv: val(g.player) });
 const minesMult = (c, k, edge) => { let m = 1 - edge / 100; for (let j = 0; j < k; j++) m *= (25 - j) / (25 - c - j); return Math.floor(m * 100) / 100; };
 
+/* ---- бот для Дурака ---- */
+const bCost = (c, tr) => rk(c) + (st(c) === tr ? 100 : 0);
+function botNext(m) {
+  const h = [...m.hands.b], tr = m.trump;
+  if (m.phase === 'attack') {
+    const rs = dRanks(m), ok = h.filter(c => (!m.table.length || rs.has(rk(c))) && m.table.length < m.limit).sort((x, y) => bCost(x, tr) - bCost(y, tr));
+    if (!m.table.length) return { k: 'attack', c: ok[0] };
+    const cheap = ok.filter(c => st(c) !== tr && (m.taking || rk(c) <= 10));
+    return cheap.length ? { k: 'attack', c: cheap[0] } : { k: 'pass' };
+  }
+  const open = m.table.map((x, i) => [x[0], i]).filter((_, i) => m.table[i][1] == null), left = [...h]; let trumps = 0;
+  for (const [a, i] of open) {
+    const opts = left.filter(c => dBeats(c, a, tr)).sort((x, y) => bCost(x, tr) - bCost(y, tr));
+    if (!opts.length) return { k: 'take' };
+    if (st(opts[0]) === tr) trumps++;
+    left.splice(left.indexOf(opts[0]), 1); if (i === open[0][1]) var first = { k: 'defend', c: opts[0], i };
+  }
+  if (trumps && m.deck.length > 6 && open.every(([a]) => st(a) !== tr && rk(a) <= 9)) return { k: 'take' };
+  return first;
+}
+function botPlay(m) {
+  for (let n = 0; n < 40 && m.status === 'active' && m.turn === 'b'; n++) {
+    let r; try { r = dMove(m, 'b', botNext(m)); } catch { try { r = dMove(m, 'b', { k: m.phase === 'defend' ? 'take' : 'pass' }); } catch { return null; } }
+    if (r) return r;
+  }
+  return null;
+}
 const PL = (r, e) => { const k = { low: [6, 2.5], mid: [40, 3], high: [260, 3.6] }[r], P = [1, 12, 66, 220, 495, 792, 924, 792, 495, 220, 66, 12, 1].map(x => x / 4096), w = P.map((_, i) => .3 + k[0] * Math.pow(Math.abs(i - 6) / 6, k[1])), t = w.reduce((a, x, i) => a + x * P[i], 0); return w.map(x => Math.floor(x / t * (1 - e / 100) * 100) / 100); };
 const BBS = [[[0,0]],[[0,0],[0,1]],[[0,0],[1,0]],[[0,0],[0,1],[0,2]],[[0,0],[1,0],[2,0]],[[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],[[0,0],[1,0],[1,1]],[[0,0],[0,1],[1,0]],[[0,0],[0,1],[0,2],[0,3]],[[0,0],[1,0],[2,0],[3,0]],[[0,0],[0,1],[1,1]],[[0,1],[1,0],[1,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,0],[0,1],[0,2],[1,0]]];
 const bbFits = (bd, s, x, y) => BBS[s].every(([r, c]) => { const R = y + r, C = x + c; return R >= 0 && R < 8 && C >= 0 && C < 8 && !bd[R * 8 + C]; });
@@ -134,7 +161,7 @@ export default async function handler(req, res) {
       if (!m || (m.a !== me0 && m.b !== me0)) throw new E('Игра не найдена', 404);
       if (b.rev === m.rev && b.st === m.status) return res.json({ same: true });
       const role = m.a === me0 ? 'a' : 'b', out0 = { durak: m.hands ? dView(m, role) : { id: m.id, status: m.status, bet: m.bet, role, oppId: m[other(role)], w: m.w, rev: m.rev } };
-      if (b.rev === undefined) { const o = await get('user:' + m[other(role)]); if (o) out0.opp = { id: String(o.id), nick: o.nick || o.name, avatar: o.avatar || '😎', level: lvl(o.xp) }; }
+      if (b.rev === undefined) { const oid = m[other(role)], o = oid === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖', xp: 2000 } : await get('user:' + oid); if (o) out0.opp = { id: String(o.id), nick: o.nick || o.name, avatar: o.avatar || '😎', level: lvl(o.xp) }; }
       return res.json(out0);
     }
     const NOLOCK = ['top', 'social', 'crash_poll', 'resume', 'bonus_info', 'history'], need = !NOLOCK.includes(b.action);
@@ -144,7 +171,7 @@ export default async function handler(req, res) {
     if (raw) dirty[String(u.id)] = norm(raw);
     const load = async id => { id = String(id); if (dirty[id]) return dirty[id]; const x = await get('user:' + id); if (x) dirty[id] = norm(x); return x ? dirty[id] : null; };
     const xload = async id => {
-      id = String(id); if (dirty[id]) return dirty[id];
+      id = String(id); if (id === 'bot') return norm({ id: 'bot', name: 'Бот', nick: 'Бот', avatar: '🤖', balance: 0, wins: 0, games: 0, xp: 2000 }); if (dirty[id]) return dirty[id];
       for (let i = 0; i < 6; i++) {
         if (await lock('lock:' + id, 6)) { held.push('lock:' + id); const x = await get('user:' + id); if (x) dirty[id] = norm(x); return x ? dirty[id] : null; }
         await sleep(120);
@@ -451,6 +478,10 @@ export default async function handler(req, res) {
     } else if (a === 'friend_remove') {
       const id = String(b.id); p.friends = p.friends.filter(x => x !== id);
       const t = await xload(id); if (t) t.friends = t.friends.filter(x => x !== me);
+    } else if (a === 'durak_bot') {
+      on('durak'); const bt = stake(b.bet); p.balance -= bt;
+      const m = dNew(crypto.randomBytes(4).toString('hex'), me, 'bot', bt); botPlay(m);
+      p.dq = [...p.dq, m.id].slice(-20); await set('durak:' + m.id, m); out = { durakId: m.id };
     } else if (a === 'duel_create' && b.type === 'durak') {
       on('durak'); const id = String(b.friend);
       if (!p.friends.includes(id)) throw new E('Играть можно только с друзьями');
@@ -483,7 +514,7 @@ export default async function handler(req, res) {
         if (m.bet > p.balance) throw new E('Недостаточно фишек');
         p.balance -= m.bet; Object.assign(m, dNew(m.id, m.a, m.b, m.bet));
       } else if (a === 'durak_move') {
-        const r = dMove(m, role, b.mv || {}); if (r) await finish(r);
+        const r = dMove(m, role, b.mv || {}); if (r) await finish(r); else if (m.b === 'bot') { const r2 = botPlay(m); if (r2) await finish(r2); }
       } else if (a === 'durak_resign') {
         if (m.status !== 'active') throw new E('Игра окончена'); await finish(other(role));
       } else {

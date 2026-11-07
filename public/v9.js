@@ -17,7 +17,7 @@ var GM=[
  {k:'dice',t:'Кости',d:'сумма двух',img:'dice_white',cat:'dice'},{k:'flip',t:'Монетка',d:'доллар или пики',img:'coin',cat:'dice'},{k:'rps',t:'КНБ',d:'камень·ножницы',img:'hand_p',cat:'dice'},
  {k:'plinko',t:'Плинко',d:'до x260',svg:'plinko',cat:'fast'},{k:'blockblast',t:'Блок Бласт',d:'до x25',svg:'blast',cat:'fast'},
  {k:'crash',t:'Краш',d:'забери вовремя',svg:'rocket',cat:'fast'},{k:'mines',t:'Мины',d:'до x1000',svg:'bomb',cat:'fast'},
- {k:'durak',t:'Дурак',d:'онлайн с другом',svg:'cards',cat:'friends',tags:['cards']},{k:'duel',t:'Дуэли',d:'кости, карта, КНБ',svg:'swords',cat:'friends'}];
+ {k:'durak',t:'Дурак',d:'с ботом и друзьями',svg:'cards',cat:'friends',tags:['cards']},{k:'duel',t:'Дуэли',d:'кости, карта, КНБ',svg:'swords',cat:'friends'}];
 var tab='all',q='';
 var rec=function(){try{return JSON.parse(localStorage.getItem('recent')||'[]')}catch(e){return[]}};
 function remember(k){try{var r=rec().filter(function(x){return x!=k});r.unshift(k);localStorage.setItem('recent',JSON.stringify(r.slice(0,4)))}catch(e){}}
@@ -25,7 +25,7 @@ function icon(g,cls){return g.photo?'<img class="tpic" src="/img/'+g.photo+'" al
 function tile(g){var off=!(g.k=='duel'||g.k=='durak'?(g.k=='duel'||cfg.games.durak):cfg.games[g.k]);
  return '<button class="gc'+(off?' off':'')+'" data-g="'+g.k+'"><span class="pic">'+icon(g)+'</span><b>'+g.t+'</b><small>'+g.d+'</small></button>'}
 function match(g){if(q){var s=q.toLowerCase();return (g.t+' '+g.d).toLowerCase().indexOf(s)>-1}return tab=='all'||g.cat==tab||(g.tags&&g.tags.indexOf(tab)>-1)}
-function open_(k){if(k=='duel')return nav('friends');if(k=='durak'){if(!cfg.games.durak)return tg.showAlert('Игра временно отключена');toast('Выбери друга и нажми ⚔️, затем «Дурак»');return nav('friends')}
+function open_(k){if(k=='duel')return nav('friends');if(k=='durak'){if(!cfg.games.durak)return tg.showAlert('Игра временно отключена');if(window.durakMenu)return window.durakMenu();toast('Выбери друга и нажми ⚔️, затем «Дурак»');return nav('friends')}
  if(!cfg.games[k])return tg.showAlert('Игра временно отключена');remember(k);openGame(k)}
 function draw(){var box=$('#gsec');if(!box)return;var list=GM.filter(match),h='';
  var recs=(!q&&tab=='all')?rec().map(function(k){return GM.filter(function(g){return g.k==k})[0]}).filter(Boolean):[];

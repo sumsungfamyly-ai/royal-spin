@@ -77,7 +77,7 @@ G.durak={t:'Дурак',i:'🃏',d:'',r:function(){
  function poll(){clearTimeout(pt);pt=setTimeout(async function(){if(!$('#dk'))return;try{var r=await send('durak_state',{rev:rev,st:st});if(r.durak){if(r.opp)opp=r.opp;apply(r.durak)}}catch(e){}if(!v||v.status!='done')poll()},(v&&v.status=='active'&&v.turn==v.role)?4500:1300);timers.push(pt)}
  send('durak_state').then(function(r){opp=r.opp||null;apply(r.durak);poll()}).catch(function(e){$('#dk').innerHTML='<div class="msg lose">'+esc(e.message)+'</div>'})}};
 /* ---- «Друзья»: список игр в Дурака ---- */
-var _ds2=drawSocial;window.drawSocial=function(){_ds2();var L=soc.durak||[];var P=Object.fromEntries(soc.people.map(function(p){return [p.id,p]})),nm=function(id){return esc((P[id]&&P[id].nick)||'Игрок')};
+var _ds2=drawSocial;window.drawSocial=function(){_ds2();var L=soc.durak||[];var P=Object.fromEntries(soc.people.map(function(p){return [p.id,p]})),nm=function(id){return id=='bot'?'🤖 Бот':esc((P[id]&&P[id].nick)||'Игрок')};
  var c=document.createElement('div');c.className='card';
  c.innerHTML='<h3>🃏 Дурак онлайн</h3>'+(L.length?L.map(function(m){var mine=m.a==me.id,op=mine?m.b:m.a,act='';
   if(m.status=='pending')act=mine?'<small>ждём</small> <button class="sm r" data-dd="'+m.id+'">Отмена</button>':'<button class="sm p" data-da="'+m.id+'">Принять</button> <button class="sm r" data-dd="'+m.id+'">✖</button>';
