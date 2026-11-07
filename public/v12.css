@@ -1,8 +1,9 @@
 /* v12: переливающийся дизайн, прозрачная панель, Блок Бласт на весь экран */
 :root{--ir:linear-gradient(115deg,#ff8fd8,#ffd36e,#7dffd1,#7db8ff,#c49bff,#ff8fd8)}
-body{background-color:#07060d!important;background-image:radial-gradient(90% 50% at 15% -5%,rgba(125,184,255,.22),transparent 60%),radial-gradient(80% 50% at 90% 5%,rgba(255,143,216,.20),transparent 60%),radial-gradient(90% 60% at 50% 105%,rgba(125,255,209,.14),transparent 60%)!important;background-attachment:fixed!important;animation:irbg 14s ease-in-out infinite alternate}
+body{background:#07060d!important}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(90% 50% at 15% -5%,rgba(125,184,255,.22),transparent 60%),radial-gradient(80% 50% at 90% 5%,rgba(255,143,216,.20),transparent 60%),radial-gradient(90% 60% at 50% 105%,rgba(125,255,209,.14),transparent 60%);animation:irbg 14s ease-in-out infinite alternate}
 @keyframes irbg{to{filter:hue-rotate(40deg) saturate(1.25)}}
-.card,.gc,.row,.bn,.qc{background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.025))!important;border:1px solid rgba(255,255,255,.12)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);position:relative}
+.card,.gc,.row,.bn,.qc{background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.025))!important;border:1px solid rgba(255,255,255,.12)!important;position:relative}
 .card::after,.gc::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:var(--ir);background-size:300% 300%;animation:irsl 7s linear infinite;opacity:.45;pointer-events:none;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 @keyframes irsl{to{background-position:300% 0}}
 .gc img,.gc .ic,.gc .svgic{filter:drop-shadow(0 6px 14px rgba(125,184,255,.35))}
@@ -24,3 +25,5 @@ body.fs .bbp{margin:18px 0}body.fs .bbp button{min-height:96px}
 body.fs .bbs{font-size:18px}
 #fsx{display:none;position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:60;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font-size:20px;backdrop-filter:blur(10px)}
 body.fs #fsx{display:block}
+body.sh #v-game{max-height:92dvh!important}
+body.fs{overflow:hidden!important;overscroll-behavior:none}
