@@ -117,6 +117,11 @@ const val = h => { let t = 0, a = 0; for (const c of h) { t += c.r > 10 ? 10 : c
 const bjView = g => ({ player: g.player, dealer: [g.dealer[0]], pv: val(g.player) });
 const minesMult = (c, k, edge) => { let m = 1 - edge / 100; for (let j = 0; j < k; j++) m *= (25 - j) / (25 - c - j); return Math.floor(m * 100) / 100; };
 
+const PL = (r, e) => { const k = { low: [6, 2.5], mid: [40, 3], high: [260, 3.6] }[r], P = [1, 12, 66, 220, 495, 792, 924, 792, 495, 220, 66, 12, 1].map(x => x / 4096), w = P.map((_, i) => .3 + k[0] * Math.pow(Math.abs(i - 6) / 6, k[1])), t = w.reduce((a, x, i) => a + x * P[i], 0); return w.map(x => Math.floor(x / t * (1 - e / 100) * 100) / 100); };
+const BBS = [[[0,0]],[[0,0],[0,1]],[[0,0],[1,0]],[[0,0],[0,1],[0,2]],[[0,0],[1,0],[2,0]],[[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],[[0,0],[1,0],[1,1]],[[0,0],[0,1],[1,0]],[[0,0],[0,1],[0,2],[0,3]],[[0,0],[1,0],[2,0],[3,0]],[[0,0],[0,1],[1,1]],[[0,1],[1,0],[1,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,0],[0,1],[0,2],[1,0]]];
+const bbFits = (bd, s, x, y) => BBS[s].every(([r, c]) => { const R = y + r, C = x + c; return R >= 0 && R < 8 && C >= 0 && C < 8 && !bd[R * 8 + C]; });
+const bbAny = (bd, pcs) => pcs.some(s => s !== null && bd.some((_, i) => bbFits(bd, s, i % 8, (i / 8) | 0)));
+const bbMult = (sc, e) => Math.min(25, Math.floor(sc / 150 * (1 - e / 100) * 100) / 100);
 export default async function handler(req, res) {
   let lk = null, mlk = null; const pend = [], held = [];
   const relAll = async () => { const ks = [lk, mlk, ...held].filter(Boolean); lk = mlk = null; held.length = 0; await Promise.allSettled(ks.map(k => del(k))); };
@@ -314,6 +319,29 @@ export default async function handler(req, res) {
       const won = rnd(10000) < S.flipChance * 100, win = won ? bt * 2 : 0;
       p.balance += win; await settle('flip', bt, win);
       out = { result: won ? b.side : b.side === 'heads' ? 'tails' : 'heads', win };
+    } else if (a === 'plinko') {
+      on('plinko'); const bt = stake(b.bet), risk = ['low', 'mid', 'high'].includes(b.risk) ? b.risk : 'mid'; p.balance -= bt;
+      const path = Array.from({ length: 12 }, () => rnd(2)), slot = path.reduce((x, y) => x + y, 0), mult = PL(risk, S.edge)[slot], win = Math.floor(bt * mult);
+      p.balance += win; await settle('plinko', bt, win); out = { path, slot, mult, win };
+    } else if (a === 'bb_state') {
+      out = { bb: p.bb ? { bd: p.bb.bd, pcs: p.bb.pcs, sc: p.bb.sc, bet: p.bb.bet, mult: bbMult(p.bb.sc, S.edge) } : null };
+    } else if (a === 'bb_start') {
+      on('blockblast'); if (!p.bb) { const bt = stake(b.bet); p.balance -= bt; p.bb = { bet: bt, bd: Array(64).fill(0), pcs: [rnd(BBS.length), rnd(BBS.length), rnd(BBS.length)], sc: 0 }; }
+      out = { bb: { bd: p.bb.bd, pcs: p.bb.pcs, sc: p.bb.sc, bet: p.bb.bet, mult: bbMult(p.bb.sc, S.edge) } };
+    } else if (a === 'bb_move' || a === 'bb_cash') {
+      on('blockblast'); const g = p.bb; if (!g) throw new E('Нет активной игры'); let over = a === 'bb_cash';
+      if (!over) {
+        const k = Math.floor(Number(b.i)), x = Math.floor(Number(b.x)), y = Math.floor(Number(b.y)), s = g.pcs[k];
+        if (!(k >= 0 && k < 3) || s === null || s === undefined || !bbFits(g.bd, s, x, y)) throw new E('Сюда нельзя');
+        BBS[s].forEach(([r, c]) => { g.bd[(y + r) * 8 + x + c] = 1 + (s % 6); }); g.sc += BBS[s].length; g.pcs[k] = null;
+        const rows = [], cols = []; for (let n = 0; n < 8; n++) { if (g.bd.slice(n * 8, n * 8 + 8).every(Boolean)) rows.push(n); if ([0,1,2,3,4,5,6,7].every(r => g.bd[r * 8 + n])) cols.push(n); }
+        const ln = rows.length + cols.length; rows.forEach(r => { for (let c = 0; c < 8; c++) g.bd[r * 8 + c] = 0; }); cols.forEach(c => { for (let r = 0; r < 8; r++) g.bd[r * 8 + c] = 0; }); g.sc += 10 * ln * ln;
+        if (g.pcs.every(v => v === null)) g.pcs = [rnd(BBS.length), rnd(BBS.length), rnd(BBS.length)];
+        over = !bbAny(g.bd, g.pcs);
+      }
+      const mult = bbMult(g.sc, S.edge);
+      if (over) { const win = Math.floor(g.bet * mult); p.balance += win; await settle('blockblast', g.bet, win); p.bb = null; out = { over: true, win, mult, bb: { bd: g.bd, pcs: g.pcs, sc: g.sc } }; }
+      else out = { bb: { bd: g.bd, pcs: g.pcs, sc: g.sc, bet: g.bet, mult } };
     } else if (a === 'dice') {
       on('dice'); const bt = stake(b.bet);
       const mode = ['under', 'over', 'exact'].includes(b.mode) ? b.mode : 'under', t = Math.floor(Number(b.target));
