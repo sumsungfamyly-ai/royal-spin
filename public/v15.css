@@ -42,7 +42,7 @@ html.light nav{background:rgba(255,255,255,.4)!important;border-color:rgba(90,70
 html.light nav button.on{background:rgba(255,255,255,.85)!important;color:#2a2340!important;box-shadow:0 4px 16px rgba(90,70,140,.25)!important}
 html.light .go{color:#1b1230!important}
 html.light #shbd{background:rgba(40,30,70,.35)}
-html.light body.sh #v-game{background:rgba(250,248,255,.9)!important;color:#2a2340;border-top-color:rgba(90,70,140,.25)}
+html.light body.shx #v-game{background:rgba(250,248,255,.9)!important;color:#2a2340;border-top-color:rgba(90,70,140,.25)}
 html.light body.fs #v-game{background:radial-gradient(100% 60% at 50% 0,rgba(125,184,255,.4),transparent 70%),#f6f3fc!important}
 html.light .bbg{background:rgba(90,70,140,.08)!important;border-color:rgba(90,70,140,.18);box-shadow:inset 0 0 24px rgba(90,70,140,.12)}
 html.light .bbg div{background:rgba(90,70,140,.1)}html.light .bbg div[class^=c]{background-color:var(--cc)}

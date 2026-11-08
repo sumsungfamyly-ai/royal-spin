@@ -2,16 +2,16 @@
 var $_=function(s,r){return(r||document).querySelector(s)};
 /* ---- шторка ---- */
 var bd=document.createElement('div');bd.id='shbd';document.body.appendChild(bd);
-function closeSheet(){if(document.body.classList.contains('sh'))nav('games')}
+function closeSheet(){if(document.body.classList.contains('shx'))nav('games')}
 bd.onclick=closeSheet;
-var og=window.openGame;window.openGame=function(g){og(g);document.body.classList.add('sh');var l=$_('#v-games');if(l)l.hidden=false;var v=$_('#v-game');if(v)v.scrollTop=0};
-var vg=$_('#v-game');if(vg){new MutationObserver(function(){if(vg.hidden)document.body.classList.remove('sh')}).observe(vg,{attributes:true,attributeFilter:['hidden']});
+var og=window.openGame;window.openGame=function(g){og(g);document.body.classList.add('shx');var l=$_('#v-games');if(l)l.hidden=false;var v=$_('#v-game');if(v)v.scrollTop=0};
+var vg=$_('#v-game');if(vg){new MutationObserver(function(){if(vg.hidden)document.body.classList.remove('shx')}).observe(vg,{attributes:true,attributeFilter:['hidden']});
  var y0=null;vg.addEventListener('touchstart',function(e){y0=(vg.scrollTop<=0&&!document.body.classList.contains('fs')&&e.touches[0].clientY<vg.getBoundingClientRect().top+56)?e.touches[0].clientY:null},{passive:true});
  vg.addEventListener('touchmove',function(e){if(y0!==null&&e.touches[0].clientY-y0>0)vg.style.transform='translateY('+(e.touches[0].clientY-y0)+'px)'},{passive:true});
  vg.addEventListener('touchend',function(e){if(y0===null)return;var d=e.changedTouches[0].clientY-y0;vg.style.transform='';y0=null;if(d>110)closeSheet()})}
 /* ---- Плинко ---- */
 var PL=function(r,e){var k={low:[6,2.5],mid:[40,3],high:[260,3.6]}[r],P=[1,12,66,220,495,792,924,792,495,220,66,12,1].map(function(x){return x/4096}),w=P.map(function(_,i){return .3+k[0]*Math.pow(Math.abs(i-6)/6,k[1])}),t=w.reduce(function(s,x,i){return s+x*P[i]},0);return w.map(function(x){return Math.floor(x/t*(1-e/100)*100)/100})};
-var sp=100/13,py=function(r){return 7+r*6.4};
+var sp=100/15,py=function(r){return 7+r*6.4};
 G.plinko={t:'Плинко',i:'🔮',d:'до x260',r:function(){var risk='mid';
  $('#gbody').innerHTML='<div class="card"><div class="plb" id="plb"></div><div class="pls" id="pls"></div><div class="opt" id="rk"><button data-r="low">Низкий</button><button data-r="mid" class="on">Средний</button><button data-r="high">Высокий</button></div>'+betBox()+'<button class="go" id="go">БРОСИТЬ ШАР</button><div class="msg" id="m"></div></div>';
  var board=$('#plb');for(var r=0;r<12;r++)for(var j=0;j<r+3;j++){var i=document.createElement('i');i.style.left=(50+(j-(r+2)/2)*sp)+'%';i.style.top=py(r)+'%';board.appendChild(i)}
