@@ -15,3 +15,5 @@ body.fs .bbp button.drag{opacity:.25}
 .bbg div.pv{background:rgba(125,255,209,.5)!important}.bbg div.bad{background:rgba(255,100,100,.35)!important}
 .bbpv{color:#fff;font-size:13px;text-align:center;opacity:.7}
 body.fs.shx #v-game{max-height:none!important;height:100dvh!important;top:0!important}
+
+body.fs #v-game{touch-action:none}html:has(body.fs){overscroll-behavior:none}

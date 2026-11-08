@@ -3,7 +3,7 @@ import { get, set, del, sadd, smembers, mget, incr, lock, once } from '../lib/db
 import { verify, tg } from '../lib/tg.js';
 import { getSettings } from '../lib/settings.js';
 import { SHOP, SHOP_CATS } from '../lib/shop.js';
-import { BG } from '../lib/board.js';
+import { BG, bbTray } from '../lib/board.js';
 
 const rnd = n => crypto.randomInt(n);
 const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
@@ -146,10 +146,10 @@ function botPlay(m) {
   }
   return null;
 }
-const BGN = { checkers: '♟️ Шашки', connect4: '🔴 Четыре в ряд' };
+const BGN = { checkers: '♟️ Шашки', connect4: '🔴 Четыре в ряд', coblast: '🧩 Блок Бласт вдвоём', comines: '💣 Мины вдвоём' };
 const bgView = (m, role) => {
   const E_ = BG[m.game], my = m.status === 'active' && m.turn === role, st = m.st || {};
-  return { id: m.id, game: m.game, status: m.status, bet: m.bet, role, w: m.w, rev: m.rev, turn: m.turn, mv: m.mv, oppId: role === 'a' ? m.b : m.a, st: m.game === 'checkers' ? { bd: st.bd, last: st.last, q: st.q } : { g: st.g, last: st.last }, legal: my ? (m.game === 'checkers' ? E_.legal(st, role).map(x => ({ p: x.p, c: x.c })) : E_.legal(st, role)) : [] };
+  return { id: m.id, game: m.game, status: m.status, bet: m.bet, role, w: m.w, rev: m.rev, turn: m.turn, mv: m.mv, pay: m.pay, mult: m.mult, coop: !!E_.coop, opt: m.opt, oppId: role === 'a' ? m.b : m.a, st: E_.coop ? (m.st ? E_.pub(m.st, m.status === 'done') : null) : m.game === 'checkers' ? { bd: st.bd, last: st.last, q: st.q } : { g: st.g, last: st.last }, legal: my && !E_.coop ? (m.game === 'checkers' ? E_.legal(st, role).map(x => ({ p: x.p, c: x.c })) : E_.legal(st, role)) : [] };
 };
 const PL = (r, e) => { const k = { low: [6, 2.5], mid: [40, 3], high: [260, 3.6] }[r], P = [1, 12, 66, 220, 495, 792, 924, 792, 495, 220, 66, 12, 1].map(x => x / 4096), w = P.map((_, i) => .3 + k[0] * Math.pow(Math.abs(i - 6) / 6, k[1])), t = w.reduce((a, x, i) => a + x * P[i], 0); return w.map(x => Math.floor(x / t * (1 - e / 100) * 100) / 100); };
 const BBS = [[[0,0]],[[0,0],[0,1]],[[0,0],[1,0]],[[0,0],[0,1],[0,2]],[[0,0],[1,0],[2,0]],[[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],[[0,0],[1,0],[1,1]],[[0,0],[0,1],[1,0]],[[0,0],[0,1],[0,2],[0,3]],[[0,0],[1,0],[2,0],[3,0]],[[0,0],[0,1],[1,1]],[[0,1],[1,0],[1,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,0],[0,1],[0,2],[1,0]]];
@@ -360,7 +360,7 @@ export default async function handler(req, res) {
     } else if (a === 'bb_state') {
       out = { bb: p.bb ? { bd: p.bb.bd, pcs: p.bb.pcs, sc: p.bb.sc, bet: p.bb.bet, mult: bbMult(p.bb.sc, S.edge) } : null };
     } else if (a === 'bb_start') {
-      on('blockblast'); if (!p.bb) { const bt = stake(b.bet); p.balance -= bt; p.bb = { bet: bt, bd: Array(64).fill(0), pcs: [rnd(BBS.length), rnd(BBS.length), rnd(BBS.length)], sc: 0 }; }
+      on('blockblast'); if (!p.bb) { const bt = stake(b.bet); p.balance -= bt; p.bb = { bet: bt, bd: Array(64).fill(0), pcs: bbTray(Array(64).fill(0)), sc: 0 }; }
       out = { bb: { bd: p.bb.bd, pcs: p.bb.pcs, sc: p.bb.sc, bet: p.bb.bet, mult: bbMult(p.bb.sc, S.edge) } };
     } else if (a === 'bb_move' || a === 'bb_cash') {
       on('blockblast'); const g = p.bb; if (!g) throw new E('Нет активной игры'); let over = a === 'bb_cash';
@@ -370,8 +370,8 @@ export default async function handler(req, res) {
         BBS[s].forEach(([r, c]) => { g.bd[(y + r) * 8 + x + c] = 1 + (s % 6); }); g.sc += BBS[s].length; g.pcs[k] = null;
         const rows = [], cols = []; for (let n = 0; n < 8; n++) { if (g.bd.slice(n * 8, n * 8 + 8).every(Boolean)) rows.push(n); if ([0,1,2,3,4,5,6,7].every(r => g.bd[r * 8 + n])) cols.push(n); }
         const ln = rows.length + cols.length; rows.forEach(r => { for (let c = 0; c < 8; c++) g.bd[r * 8 + c] = 0; }); cols.forEach(c => { for (let r = 0; r < 8; r++) g.bd[r * 8 + c] = 0; }); g.sc += 10 * ln * ln;
-        if (g.pcs.every(v => v === null)) g.pcs = [rnd(BBS.length), rnd(BBS.length), rnd(BBS.length)];
-        over = !bbAny(g.bd, g.pcs);
+        if (g.pcs.every(v => v === null)) g.pcs = bbTray(g.bd);
+        over = !bbAny(g.bd, g.pcs) || bbMult(g.sc, S.edge) >= 25;
       }
       const mult = bbMult(g.sc, S.edge);
       if (over) { const win = Math.floor(g.bet * mult); p.balance += win; await settle('blockblast', g.bet, win); p.bb = null; out = { over: true, win, mult, bb: { bd: g.bd, pcs: g.pcs, sc: g.sc } }; }
@@ -574,14 +574,14 @@ export default async function handler(req, res) {
       else { const it = SHOP.find(x => x.id === id); if (!it || !p.shop.own.includes(id)) throw new E('Сначала купи этот товар'); p.shop.eq[it.cat] = id; }
       out = { shop: { items: SHOP, own: p.shop.own, eq: p.shop.eq } };
     } else if (a === 'bg_bot') {
-      const gm = String(b.game); if (!BG[gm]) throw new E('Неизвестная игра'); on(gm); const bt = stake(b.bet); p.balance -= bt;
+      const gm = String(b.game); if (!BG[gm] || BG[gm].coop) throw new E('Эта игра только с другом'); on(gm); const bt = stake(b.bet); p.balance -= bt;
       const m = { id: crypto.randomBytes(4).toString('hex'), game: gm, a: me, b: 'bot', bet: bt, status: 'active', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: BG[gm].init() };
       p.bgq = [...p.bgq, m.id].slice(-20); await set('bg:' + m.id, m); out = { bg: bgView(m, 'a') };
     } else if (a === 'bg_invite') {
       const gm = String(b.game); if (!BG[gm]) throw new E('Неизвестная игра'); on(gm); const id = String(b.friend);
       if (!p.friends.includes(id)) throw new E('Играть можно только с друзьями');
       const bt = stake(b.bet), t = await xload(id); if (!t) throw new E('Игрок не найден'); p.balance -= bt;
-      const m = { id: crypto.randomBytes(4).toString('hex'), game: gm, a: me, b: id, bet: bt, status: 'pending', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: null };
+      const m = { id: crypto.randomBytes(4).toString('hex'), game: gm, a: me, b: id, bet: bt, status: 'pending', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: null, opt: Number(b.opt) || 0 };
       await set('bg:' + m.id, m); p.bgq = [...p.bgq, m.id].slice(-20); t.bgq = [...(t.bgq || []), m.id].slice(-20);
       if (t.notif?.on !== false) { try { await tg('sendMessage', { chat_id: id, text: `${BGN[gm]}: ${p.nick || p.name} зовёт тебя сыграть! Ставка: ${bt} 🪙`, reply_markup: { inline_keyboard: [[{ text: 'Открыть', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } catch {} }
       out = { msg: 'Приглашение отправлено', bg: bgView(m, 'a') };
@@ -593,13 +593,19 @@ export default async function handler(req, res) {
       const m = await get('bg:' + b.id); if (!m || (m.a !== me && m.b !== me)) throw new E('Игра не найдена');
       const role = m.a === me ? 'a' : 'b', oid = role === 'a' ? m.b : m.a, o = oid === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖' } : await get('user:' + oid);
       out = { bg: bgView(m, role), opp: o ? { id: o.id, nick: o.nick || o.name, avatar: o.avatar } : { id: oid, nick: 'Игрок', avatar: '👤' } };
-    } else if (a === 'bg_accept' || a === 'bg_decline' || a === 'bg_move' || a === 'bg_resign' || a === 'bg_claim') {
+    } else if (a === 'bg_accept' || a === 'bg_decline' || a === 'bg_move' || a === 'bg_resign' || a === 'bg_claim' || a === 'bg_cash') {
       for (let i = 0; i < 8 && !mlk; i++) { if (await lock('mlock:' + b.id, 6)) mlk = 'mlock:' + b.id; else await sleep(120); }
       if (!mlk) throw new E('Подожди секунду…', 429);
       const m = await get('bg:' + b.id); if (!m || (m.a !== me && m.b !== me)) throw new E('Игра не найдена');
       const role = m.a === me ? 'a' : 'b', E_ = BG[m.game];
       const finish = async w => {
-        const A = await xload(m.a), B = await xload(m.b), pot = m.bet * 2, fee = Math.floor(pot * S.duelFee / 100); m.status = 'done'; m.w = w; m.rev++; m.mv = Date.now();
+        const A = await xload(m.a), B = await xload(m.b), pot = m.bet * 2, fee = Math.floor(pot * S.duelFee / 100);
+        if (w && typeof w === 'object') {
+          const pay = Math.floor(m.bet * w.mult); m.status = 'done'; m.w = 'coop'; m.pay = pay; m.mult = w.mult; m.rev++; m.mv = Date.now();
+          [A, B].forEach(P => { P.balance += pay; P.games++; P.xp += Math.min(m.bet, 500); if (pay > m.bet) { P.wins++; P.biggest = Math.max(P.biggest, pay); } track(P, m.game, m.bet, pay); });
+          pend.push(Promise.all([incr('g:' + m.game + ':bets', pot), incr('g:' + m.game + ':payouts', pay * 2), incr('g:' + m.game + ':n', 1)])); return;
+        }
+        m.status = 'done'; m.w = w; m.rev++; m.mv = Date.now();
         let paid = pot;
         if (w === 'draw') { A.balance += m.bet; B.balance += m.bet; } else if (w === 'x') { A.balance += m.bet; } else { const W = w === 'a' ? A : B; paid = pot - fee; W.balance += paid; W.wins++; W.duelWins = (W.duelWins || 0) + 1; W.biggest = Math.max(W.biggest, paid); }
         if (w !== 'x') {
@@ -611,7 +617,7 @@ export default async function handler(req, res) {
       const flip = r => (r === 'a' ? 'b' : 'a');
       if (a === 'bg_accept') {
         if (m.status !== 'pending' || m.b !== me) throw new E('Нельзя принять'); if (m.bet > p.balance) throw new E('Недостаточно фишек');
-        p.balance -= m.bet; m.status = 'active'; m.turn = 'a'; m.st = E_.init(); m.rev++; m.mv = Date.now();
+        p.balance -= m.bet; m.status = 'active'; m.turn = 'a'; m.st = E_.init(S.edge, m.opt); m.rev++; m.mv = Date.now();
       } else if (a === 'bg_decline') {
         if (m.status !== 'pending' || m.b !== me) throw new E('Нельзя отклонить'); await finish('x');
       } else if (a === 'bg_move') {
@@ -624,11 +630,14 @@ export default async function handler(req, res) {
           m.turn = flip(role); const oid = m[m.turn];
           try { const T = await get('user:' + oid); if (T && T.notif?.on !== false && Date.now() - (T.seen || 0) > 90000) await tg('sendMessage', { chat_id: oid, text: `⏳ Твой ход в игре «${BGN[m.game]}» против ${p.nick || p.name}`, reply_markup: { inline_keyboard: [[{ text: 'Сходить', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } catch {}
         }
+      } else if (a === 'bg_cash') {
+        if (!E_.coop || m.status !== 'active') throw new E('Нельзя'); await finish({ t: 'coop', mult: E_.cash(m.st).mult });
       } else if (a === 'bg_resign') {
-        if (m.status === 'active') await finish(flip(role)); else if (m.status === 'pending' && role === 'a') await finish('x'); else throw new E('Игра окончена');
+        if (m.status === 'active' && E_.coop) await finish({ t: 'coop', mult: E_.cash(m.st).mult });
+        else if (m.status === 'active') await finish(flip(role)); else if (m.status === 'pending' && role === 'a') await finish('x'); else throw new E('Игра окончена');
       } else if (a === 'bg_claim') {
         if (m.status !== 'active' || m.turn === role || m.b === 'bot') throw new E('Нельзя'); if (Date.now() - m.mv < 10 * 60 * 1000) throw new E('Соперник ещё может ходить');
-        await finish(role);
+        await finish(E_.coop ? { t: 'coop', mult: E_.cash(m.st).mult } : role);
       }
       await set('bg:' + m.id, m); const oid2 = role === 'a' ? m.b : m.a, o2 = oid2 === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖' } : await get('user:' + oid2);
       out = { bg: bgView(m, role), opp: o2 ? { id: o2.id, nick: o2.nick || o2.name, avatar: o2.avatar } : null };

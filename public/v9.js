@@ -20,6 +20,7 @@ var GM=[
  {k:'plinko',t:'Плинко',d:'до x260',svg:'plinko',cat:'fast'},{k:'blockblast',t:'Блок Бласт',d:'до x25',svg:'blast',cat:'fast'},
  {k:'crash',t:'Краш',d:'забери вовремя',svg:'rocket',cat:'fast'},{k:'mines',t:'Мины',d:'до x1000',svg:'bomb',cat:'fast'},
  {k:'durak',t:'Дурак',d:'с ботом и друзьями',svg:'cards',cat:'friends',tags:['cards']},{k:'checkers',t:'Шашки',d:'онлайн и с ботом',svg:'checkers',cat:'friends'},{k:'connect4',t:'Четыре в ряд',d:'онлайн и с ботом',svg:'c4',cat:'friends'},
+ {k:'coblast',t:'Блок Бласт вдвоём',d:'вместе с другом',svg:'blast',cat:'friends'},{k:'comines',t:'Мины вдвоём',d:'вместе с другом',svg:'bomb',cat:'friends'},
  {k:'duel',t:'Дуэли',d:'кости, карта, КНБ',svg:'swords',cat:'friends'}];
 var tab='all',q='';
 var rec=function(){try{return JSON.parse(localStorage.getItem('recent')||'[]')}catch(e){return[]}};
