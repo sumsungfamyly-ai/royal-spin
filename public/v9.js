@@ -6,6 +6,8 @@ cards:'<rect x="3" y="5.5" width="11" height="15" rx="2" transform="rotate(-9 8.
 swords:'<path d="M5 3l8.5 8.5M5 3v3.5M5 3h3.5M19 3l-8.5 8.5M19 3v3.5M19 3h-3.5M8 13l-3.5 3.5M5 16.5l-1.5 1.5 2.5 2.5L7.5 19M16 13l3.5 3.5M19 16.5l1.5 1.5-2.5 2.5L16.5 19"/>',
 plinko:'<circle cx="12" cy="5" r="1.6"/><circle cx="8" cy="11" r="1.6"/><circle cx="16" cy="11" r="1.6"/><circle cx="4.5" cy="17" r="1.6"/><circle cx="12" cy="17" r="1.6"/><circle cx="19.5" cy="17" r="1.6"/>',
 blast:'<rect x="3" y="3" width="8" height="8" rx="1.6"/><rect x="13" y="3" width="8" height="8" rx="1.6"/><rect x="3" y="13" width="8" height="8" rx="1.6"/><path d="M13 17h8M17 13v8"/>',
+checkers:'<circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="12" cy="12" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/>',
+c4:'<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8" cy="9" r="1.4"/><circle cx="12" cy="9" r="1.4"/><circle cx="16" cy="9" r="1.4"/><circle cx="8" cy="15" r="1.4"/><circle cx="12" cy="15" r="1.4"/><circle cx="16" cy="15" r="1.4"/>',
 search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>'};
 var svg=function(k,c){return '<svg class="'+(c||'svgic')+'" viewBox="0 0 24 24" aria-hidden="true">'+SV[k]+'</svg>'};
 function toast(t){var d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(function(){d.classList.add('out')},2400);setTimeout(function(){d.remove()},2900)}
@@ -17,7 +19,8 @@ var GM=[
  {k:'dice',t:'Кости',d:'сумма двух',img:'dice_white',cat:'dice'},{k:'flip',t:'Монетка',d:'доллар или пики',img:'coin',cat:'dice'},{k:'rps',t:'КНБ',d:'камень·ножницы',img:'hand_p',cat:'dice'},
  {k:'plinko',t:'Плинко',d:'до x260',svg:'plinko',cat:'fast'},{k:'blockblast',t:'Блок Бласт',d:'до x25',svg:'blast',cat:'fast'},
  {k:'crash',t:'Краш',d:'забери вовремя',svg:'rocket',cat:'fast'},{k:'mines',t:'Мины',d:'до x1000',svg:'bomb',cat:'fast'},
- {k:'durak',t:'Дурак',d:'с ботом и друзьями',svg:'cards',cat:'friends',tags:['cards']},{k:'duel',t:'Дуэли',d:'кости, карта, КНБ',svg:'swords',cat:'friends'}];
+ {k:'durak',t:'Дурак',d:'с ботом и друзьями',svg:'cards',cat:'friends',tags:['cards']},{k:'checkers',t:'Шашки',d:'онлайн и с ботом',svg:'checkers',cat:'friends'},{k:'connect4',t:'Четыре в ряд',d:'онлайн и с ботом',svg:'c4',cat:'friends'},
+ {k:'duel',t:'Дуэли',d:'кости, карта, КНБ',svg:'swords',cat:'friends'}];
 var tab='all',q='';
 var rec=function(){try{return JSON.parse(localStorage.getItem('recent')||'[]')}catch(e){return[]}};
 function remember(k){try{var r=rec().filter(function(x){return x!=k});r.unshift(k);localStorage.setItem('recent',JSON.stringify(r.slice(0,4)))}catch(e){}}

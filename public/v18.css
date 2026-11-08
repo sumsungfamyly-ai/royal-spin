@@ -1,0 +1,32 @@
+/* v18: настольные игры (шашки, четыре в ряд) */
+.bgh{display:flex;align-items:center;gap:10px;margin-bottom:14px}.bgh b{font-size:20px}.bgi{font-size:34px}
+.go.sec2{background:rgba(255,255,255,.08)!important;color:inherit!important;border:1px solid rgba(255,255,255,.2)!important;box-shadow:none!important;animation:none;margin-top:10px}
+html.light .go.sec2{background:rgba(90,70,140,.08)!important;border-color:rgba(90,70,140,.22)!important}
+.bgl h4{margin:20px 0 8px;opacity:.7;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.bgr{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);margin-bottom:8px}
+html.light .bgr{background:rgba(90,70,140,.06);border-color:rgba(90,70,140,.14)}
+.bgr .av{font-size:26px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1);flex:none}.bgr>div{flex:1;min-width:0}.bgr small{display:block;opacity:.7}
+.bgr .bd{font-size:12px;font-weight:700;padding:5px 10px;border-radius:10px;background:rgba(255,255,255,.1);white-space:nowrap}.bgr .bd.my{background:linear-gradient(115deg,#7dffd1,#7db8ff);color:#10202a}
+.bgr button{min-height:38px;padding:0 12px;border-radius:12px;border:0;font-weight:800;margin-left:4px}.bgr .ok{background:#2ee08a;color:#07210f}.bgr .no{background:rgba(255,255,255,.12);color:inherit}
+.bgm{display:flex;align-items:center;gap:10px;margin-bottom:10px}.bgm .av{font-size:24px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1)}.bgm div{flex:1}.bgm small{opacity:.7;display:block}
+.bgst{text-align:center;font-weight:800;margin:6px 0 10px;min-height:22px}.bgst.my{color:#2ee08a}
+.bgact{display:flex;gap:10px;margin-top:12px}.bgact button{flex:1;min-height:46px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:inherit;font-weight:700}
+.bgact .dng{color:#ff7a8a;border-color:rgba(255,122,138,.4)}
+/* шашки */
+.ckb{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));margin:0 auto;border-radius:14px;overflow:hidden;border:3px solid #6b4a1e;box-shadow:0 10px 30px rgba(0,0,0,.45);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.ckb i{position:relative;display:grid;place-items:center;background:#f0d9b5}.ckb i.d{background:#b58863}
+.ckb i.lm{box-shadow:inset 0 0 0 100px rgba(255,235,120,.35)}.ckb i.sl{box-shadow:inset 0 0 0 3px #2ee08a}.ckb i.sc::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(0,0,0,.32)}
+.ckb i.tg::after{content:"";position:absolute;width:44%;height:44%;border-radius:50%;background:rgba(46,224,138,.7);box-shadow:0 0 12px #2ee08a}
+.pc{display:block;width:78%;height:78%;border-radius:50%;box-shadow:0 3px 6px rgba(0,0,0,.5),inset 0 -3px 0 rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.35);animation:pcp .22s ease-out}
+.pc.pa{background:radial-gradient(circle at 35% 30%,#fff,#f3e6c8 60%,#cdb98c)}.pc.pb{background:radial-gradient(circle at 35% 30%,#e86a6a,#b32424 60%,#6b1010)}
+.pc.k::after{content:"♛";display:grid;place-items:center;height:100%;font-size:clamp(14px,5vw,26px);color:#ffd36e;text-shadow:0 1px 2px rgba(0,0,0,.6)}.pc.pa.k::after{color:#9a6b00}
+@keyframes pcp{from{transform:scale(.6)}to{transform:none}}
+/* четыре в ряд */
+.c4b{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));gap:4px;padding:8px;margin:0 auto;border-radius:18px;background:linear-gradient(160deg,#2f5fe0,#1b3aa8);box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.25)}
+.c4b i{position:relative;border-radius:50%;background:#0b1233;box-shadow:inset 0 3px 8px rgba(0,0,0,.6)}
+.c4b i b{position:absolute;inset:6%;border-radius:50%;animation:c4d .45s cubic-bezier(.3,0,.7,1.2)}
+.c4b i b.r{background:radial-gradient(circle at 35% 30%,#ff9a9a,#e03030 60%,#8a1010)}.c4b i b.y{background:radial-gradient(circle at 35% 30%,#fff3a8,#ffd02e 60%,#b58500)}
+.c4b i.w b{animation:c4w .7s ease-in-out infinite alternate}.c4b i.lm b{box-shadow:0 0 0 3px rgba(255,255,255,.8)}
+.c4b.my i{cursor:pointer}
+@keyframes c4d{from{transform:translateY(calc(var(--dr,3) * -110%))}}@keyframes c4w{to{transform:scale(1.12);filter:brightness(1.3)}}
+.c4hint{text-align:center;font-size:13px;opacity:.75;margin-top:8px}

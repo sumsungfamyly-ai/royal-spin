@@ -3,6 +3,7 @@ import { get, set, del, sadd, smembers, mget, incr, lock, once } from '../lib/db
 import { verify, tg } from '../lib/tg.js';
 import { getSettings } from '../lib/settings.js';
 import { SHOP, SHOP_CATS } from '../lib/shop.js';
+import { BG } from '../lib/board.js';
 
 const rnd = n => crypto.randomInt(n);
 const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
@@ -96,7 +97,7 @@ function dView(m, role) {
     w: m.w, last: m.last, rev: m.rev, mv: m.mv, legal };
 }
 class E extends Error { constructor(m, c = 400) { super(m); this.code = c; } }
-const norm = p => { p.lb ??= { s: 'none' }; if (p.lastDay) { const t = Date.parse(p.lastDay + 'T12:00:00Z'); if (!p.bonusAt || t > p.bonusAt) p.bonusAt = t; delete p.lastDay; } p.bestStreak ??= p.streak || 0; p.dq ??= []; p.shop ??= { own: [], eq: {} }; p.notif ??= { on: true, last: 0 }; p.lvl ??= lvl(p.xp); p.q ??= { d: '', games: 0, wins: 0, bet: 0, done: [] }; p.ach ??= {}; p.hist ??= []; p.streak ??= 0; p.refs ??= 0; p.duelWins ??= 0; p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
+const norm = p => { p.lb ??= { s: 'none' }; if (p.lastDay) { const t = Date.parse(p.lastDay + 'T12:00:00Z'); if (!p.bonusAt || t > p.bonusAt) p.bonusAt = t; delete p.lastDay; } p.bestStreak ??= p.streak || 0; p.dq ??= []; p.shop ??= { own: [], eq: {} }; p.bgq ??= []; p.notif ??= { on: true, last: 0 }; p.lvl ??= lvl(p.xp); p.q ??= { d: '', games: 0, wins: 0, bet: 0, done: [] }; p.ach ??= {}; p.hist ??= []; p.streak ??= 0; p.refs ??= 0; p.duelWins ??= 0; p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
 const pub = (p, up) => {
   const l = lvl(p.xp);
   return { id: String(p.id), nick: p.nick || p.name, avatar: p.avatar, bio: p.bio, balance: p.balance, level: l, xp: p.xp,
@@ -145,6 +146,11 @@ function botPlay(m) {
   }
   return null;
 }
+const BGN = { checkers: '♟️ Шашки', connect4: '🔴 Четыре в ряд' };
+const bgView = (m, role) => {
+  const E_ = BG[m.game], my = m.status === 'active' && m.turn === role, st = m.st || {};
+  return { id: m.id, game: m.game, status: m.status, bet: m.bet, role, w: m.w, rev: m.rev, turn: m.turn, mv: m.mv, oppId: role === 'a' ? m.b : m.a, st: m.game === 'checkers' ? { bd: st.bd, last: st.last, q: st.q } : { g: st.g, last: st.last }, legal: my ? (m.game === 'checkers' ? E_.legal(st, role).map(x => ({ p: x.p, c: x.c })) : E_.legal(st, role)) : [] };
+};
 const PL = (r, e) => { const k = { low: [6, 2.5], mid: [40, 3], high: [260, 3.6] }[r], P = [1, 12, 66, 220, 495, 792, 924, 792, 495, 220, 66, 12, 1].map(x => x / 4096), w = P.map((_, i) => .3 + k[0] * Math.pow(Math.abs(i - 6) / 6, k[1])), t = w.reduce((a, x, i) => a + x * P[i], 0); return w.map(x => Math.floor(x / t * (1 - e / 100) * 100) / 100); };
 const BBS = [[[0,0]],[[0,0],[0,1]],[[0,0],[1,0]],[[0,0],[0,1],[0,2]],[[0,0],[1,0],[2,0]],[[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],[[0,0],[1,0],[1,1]],[[0,0],[0,1],[1,0]],[[0,0],[0,1],[0,2],[0,3]],[[0,0],[1,0],[2,0],[3,0]],[[0,0],[0,1],[1,1]],[[0,1],[1,0],[1,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,0],[0,1],[0,2],[1,0]]];
 const bbFits = (bd, s, x, y) => BBS[s].every(([r, c]) => { const R = y + r, C = x + c; return R >= 0 && R < 8 && C >= 0 && C < 8 && !bd[R * 8 + C]; });
@@ -567,6 +573,65 @@ export default async function handler(req, res) {
       if (!id) { if (!SHOP_CATS.includes(cat)) throw new E('Неверная категория'); delete p.shop.eq[cat]; }
       else { const it = SHOP.find(x => x.id === id); if (!it || !p.shop.own.includes(id)) throw new E('Сначала купи этот товар'); p.shop.eq[it.cat] = id; }
       out = { shop: { items: SHOP, own: p.shop.own, eq: p.shop.eq } };
+    } else if (a === 'bg_bot') {
+      const gm = String(b.game); if (!BG[gm]) throw new E('Неизвестная игра'); on(gm); const bt = stake(b.bet); p.balance -= bt;
+      const m = { id: crypto.randomBytes(4).toString('hex'), game: gm, a: me, b: 'bot', bet: bt, status: 'active', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: BG[gm].init() };
+      p.bgq = [...p.bgq, m.id].slice(-20); await set('bg:' + m.id, m); out = { bg: bgView(m, 'a') };
+    } else if (a === 'bg_invite') {
+      const gm = String(b.game); if (!BG[gm]) throw new E('Неизвестная игра'); on(gm); const id = String(b.friend);
+      if (!p.friends.includes(id)) throw new E('Играть можно только с друзьями');
+      const bt = stake(b.bet), t = await xload(id); if (!t) throw new E('Игрок не найден'); p.balance -= bt;
+      const m = { id: crypto.randomBytes(4).toString('hex'), game: gm, a: me, b: id, bet: bt, status: 'pending', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: null };
+      await set('bg:' + m.id, m); p.bgq = [...p.bgq, m.id].slice(-20); t.bgq = [...(t.bgq || []), m.id].slice(-20);
+      if (t.notif?.on !== false) { try { await tg('sendMessage', { chat_id: id, text: `${BGN[gm]}: ${p.nick || p.name} зовёт тебя сыграть! Ставка: ${bt} 🪙`, reply_markup: { inline_keyboard: [[{ text: 'Открыть', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } catch {} }
+      out = { msg: 'Приглашение отправлено', bg: bgView(m, 'a') };
+    } else if (a === 'bg_list') {
+      const ms = (await mget(p.bgq.slice(-14).map(i => 'bg:' + i))).filter(m => m && (m.status !== 'done' || Date.now() - m.mv < 36e5)).reverse();
+      const ids = [...new Set(ms.map(m => (m.a === me ? m.b : m.a)).filter(x => x !== 'bot'))], us = (await mget(ids.map(i => 'user:' + i))).filter(Boolean), nm = {}; us.forEach(u => { nm[u.id] = { id: u.id, nick: u.nick || u.name, avatar: u.avatar }; });
+      out = { list: ms.map(m => { const role = m.a === me ? 'a' : 'b', oid = role === 'a' ? m.b : m.a; return { id: m.id, game: m.game, status: m.status, bet: m.bet, role, w: m.w, turn: m.turn, opp: oid === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖' } : nm[oid] || { id: oid, nick: 'Игрок', avatar: '👤' } }; }) };
+    } else if (a === 'bg_state') {
+      const m = await get('bg:' + b.id); if (!m || (m.a !== me && m.b !== me)) throw new E('Игра не найдена');
+      const role = m.a === me ? 'a' : 'b', oid = role === 'a' ? m.b : m.a, o = oid === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖' } : await get('user:' + oid);
+      out = { bg: bgView(m, role), opp: o ? { id: o.id, nick: o.nick || o.name, avatar: o.avatar } : { id: oid, nick: 'Игрок', avatar: '👤' } };
+    } else if (a === 'bg_accept' || a === 'bg_decline' || a === 'bg_move' || a === 'bg_resign' || a === 'bg_claim') {
+      for (let i = 0; i < 8 && !mlk; i++) { if (await lock('mlock:' + b.id, 6)) mlk = 'mlock:' + b.id; else await sleep(120); }
+      if (!mlk) throw new E('Подожди секунду…', 429);
+      const m = await get('bg:' + b.id); if (!m || (m.a !== me && m.b !== me)) throw new E('Игра не найдена');
+      const role = m.a === me ? 'a' : 'b', E_ = BG[m.game];
+      const finish = async w => {
+        const A = await xload(m.a), B = await xload(m.b), pot = m.bet * 2, fee = Math.floor(pot * S.duelFee / 100); m.status = 'done'; m.w = w; m.rev++; m.mv = Date.now();
+        let paid = pot;
+        if (w === 'draw') { A.balance += m.bet; B.balance += m.bet; } else if (w === 'x') { A.balance += m.bet; } else { const W = w === 'a' ? A : B; paid = pot - fee; W.balance += paid; W.wins++; W.duelWins = (W.duelWins || 0) + 1; W.biggest = Math.max(W.biggest, paid); }
+        if (w !== 'x') {
+          A.games++; B.games++; A.xp += Math.min(m.bet, 500); B.xp += Math.min(m.bet, 500);
+          track(A, m.game, m.bet, w === 'a' ? paid : w === 'draw' ? m.bet : 0); track(B, m.game, m.bet, w === 'b' ? paid : w === 'draw' ? m.bet : 0);
+          pend.push(Promise.all([incr('g:' + m.game + ':bets', pot), incr('g:' + m.game + ':payouts', w === 'draw' ? pot : paid), incr('g:' + m.game + ':n', 1)]));
+        }
+      };
+      const flip = r => (r === 'a' ? 'b' : 'a');
+      if (a === 'bg_accept') {
+        if (m.status !== 'pending' || m.b !== me) throw new E('Нельзя принять'); if (m.bet > p.balance) throw new E('Недостаточно фишек');
+        p.balance -= m.bet; m.status = 'active'; m.turn = 'a'; m.st = E_.init(); m.rev++; m.mv = Date.now();
+      } else if (a === 'bg_decline') {
+        if (m.status !== 'pending' || m.b !== me) throw new E('Нельзя отклонить'); await finish('x');
+      } else if (a === 'bg_move') {
+        if (m.status !== 'active') throw new E('Игра окончена'); if (m.turn !== role) throw new E('Сейчас не твой ход');
+        let o; try { o = E_.apply(m.st, role, b.mv || {}); } catch (e) { throw new E(e.message || 'Нельзя так сходить'); }
+        m.st = o.st; m.rev++; m.mv = Date.now();
+        if (o.res) await finish(o.res);
+        else if (m.b === 'bot') { const o2 = E_.apply(m.st, 'b', E_.bot(m.st, 'b')); m.st = o2.st; m.rev++; if (o2.res) await finish(o2.res); else m.turn = 'a'; }
+        else {
+          m.turn = flip(role); const oid = m[m.turn];
+          try { const T = await get('user:' + oid); if (T && T.notif?.on !== false && Date.now() - (T.seen || 0) > 90000) await tg('sendMessage', { chat_id: oid, text: `⏳ Твой ход в игре «${BGN[m.game]}» против ${p.nick || p.name}`, reply_markup: { inline_keyboard: [[{ text: 'Сходить', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } catch {}
+        }
+      } else if (a === 'bg_resign') {
+        if (m.status === 'active') await finish(flip(role)); else if (m.status === 'pending' && role === 'a') await finish('x'); else throw new E('Игра окончена');
+      } else if (a === 'bg_claim') {
+        if (m.status !== 'active' || m.turn === role || m.b === 'bot') throw new E('Нельзя'); if (Date.now() - m.mv < 10 * 60 * 1000) throw new E('Соперник ещё может ходить');
+        await finish(role);
+      }
+      await set('bg:' + m.id, m); const oid2 = role === 'a' ? m.b : m.a, o2 = oid2 === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖' } : await get('user:' + oid2);
+      out = { bg: bgView(m, role), opp: o2 ? { id: o2.id, nick: o2.nick || o2.name, avatar: o2.avatar } : null };
     } else if (a === 'notif_set') {
       p.notif.on = !!b.on; out = {};
     } else throw new E('unknown action');
