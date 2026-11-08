@@ -102,7 +102,7 @@ const pub = (p, up) => {
   const l = lvl(p.xp);
   return { id: String(p.id), nick: p.nick || p.name, avatar: p.avatar, bio: p.bio, balance: p.balance, level: l, xp: p.xp,
     xpFrom: 500 * (l - 1) ** 2, xpTo: 500 * l * l, wins: p.wins, games: p.games, biggest: p.biggest,
-    friends: p.friends.length, requests: p.reqIn.length, bonusIn: p.bonusAt ? Math.max(0, p.bonusAt + BONUS_CD - Date.now()) : 0, streak: effStreak(p, Date.now()), refs: p.refs, lvlUp: up || 0, eq: p.shop?.eq || {}, notif: p.notif?.on !== false, lb: p.lb.s, lbNote: p.lb.note || '', lbAt: p.lb.t || 0, crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
+    friends: p.friends.length, requests: p.reqIn.length, bonusIn: p.bonusAt ? Math.max(0, p.bonusAt + BONUS_CD - Date.now()) : 0, streak: effStreak(p, Date.now()), refs: p.refs, lvlUp: up || 0, eq: p.shop?.eq || {}, notif: p.notif?.on !== false, admin: ADMINS.includes(String(p.id)), lb: p.lb.s, lbNote: p.lb.note || '', lbAt: p.lb.t || 0, crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
 };
 const lite = (x, now) => ({ id: String(x.id), nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), online: now - (x.lastSeen || 0) < 120000 });
 const pickSym = sy => {
@@ -146,6 +146,7 @@ function botPlay(m) {
   }
   return null;
 }
+const ADMINS = (process.env.ADMIN_IDS || process.env.ADMIN_CHAT_ID || '').split(',').map(s => s.trim()).filter(Boolean);
 const BGN = { checkers: '♟️ Шашки', connect4: '🔴 Четыре в ряд', coblast: '🧩 Блок Бласт вдвоём', comines: '💣 Мины вдвоём' };
 const bgView = (m, role) => {
   const E_ = BG[m.game], my = m.status === 'active' && m.turn === role, st = m.st || {};

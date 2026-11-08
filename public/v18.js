@@ -86,5 +86,7 @@ function open(key,id){stop();var V=null,O=null,sel=null,busy=false,fxd=false,dra
   function c4line(g){var D=[[0,1],[1,0],[1,1],[1,-1]];for(var r=0;r<6;r++)for(var c=0;c<7;c++){var v=g[r*7+c];if(!v)continue;for(var k=0;k<4;k++){var dr=D[k][0],dc=D[k][1],o=[r*7+c];for(var s=1;s<4;s++){var rr=r+dr*s,cc=c+dc*s;if(rr<0||rr>5||cc<0||cc>6||g[rr*7+cc]!=v)break;o.push(rr*7+cc)}if(o.length==4)return o}}return[]}
   function drop(c){if(busy||!V||V.status!='active'||V.turn!=V.role)return;if(V.legal.indexOf(c)<0)return;act('bg_move',{id:id,mv:{c:c}})}
  api('bg_state',{id:id}).then(function(r){apply(r);timer=setInterval(function(){if(!V||V.status=='done'&&timer)return;if(V.status=='done')return stop();pull()},2500)}).catch(function(e){$('#bgv').innerHTML='<small>'+esc(e.message)+'</small>'})}
+window.bgBox=box;window.bgPickBet=pickBet;window.bgOpen=function(key,id){nav('games');openGame(key);open(key,id)};
+window.bgInvite=function(key,f){(key=='comines'?optPick:function(c){c(0)})(function(opt){pickBet('Ставка',function(b,m){api('bg_invite',{game:key,friend:f,bet:b,opt:opt}).then(function(r){m.remove();window.bgOpen(key,r.bg.id)}).catch(function(e){m.remove();tg.showAlert(e.message)})})})};
 G.checkers=make('checkers');G.connect4=make('connect4');G.coblast=make('coblast');G.comines=make('comines');
 })();

@@ -15,12 +15,12 @@ nav button{min-width:0}nav button span{font-size:22px}
 .chp{font-weight:900;font-size:22px;padding:8px 14px;border-radius:12px;background:rgba(255,255,255,.07)}
 /* рамки аватара (на себе и в превью) */
 .av{position:relative}
-.fr-gold,body[data-fr=gold] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #ffd36e,0 0 14px rgba(255,211,110,.8)!important}
-.fr-neon,body[data-fr=neon] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #7dffd1,0 0 18px #7dffd1,0 0 36px rgba(125,255,209,.5)!important}
-.fr-flame,body[data-fr=flame] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #ff7a2f,0 0 16px #ff4d2f;animation:frfl .7s ease-in-out infinite alternate}
-.fr-rainbow,body[data-fr=rainbow] :is(#v-me .av,.row.mine .av){animation:frrb 3s linear infinite}
-.fr-royal,body[data-fr=royal] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #ffd36e,0 0 0 6px #7a4be0,0 0 22px rgba(122,75,224,.7)}
-.fr-royal::after,body[data-fr=royal] :is(#v-me .av,.row.mine .av)::after{content:"👑";position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:18px}
+.fr-gold,body[data-frm=gold] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #ffd36e,0 0 14px rgba(255,211,110,.8)!important}
+.fr-neon,body[data-frm=neon] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #7dffd1,0 0 18px #7dffd1,0 0 36px rgba(125,255,209,.5)!important}
+.fr-flame,body[data-frm=flame] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #ff7a2f,0 0 16px #ff4d2f;animation:frfl .7s ease-in-out infinite alternate}
+.fr-rainbow,body[data-frm=rainbow] :is(#v-me .av,.row.mine .av){animation:frrb 3s linear infinite}
+.fr-royal,body[data-frm=royal] :is(#v-me .av,.row.mine .av){box-shadow:0 0 0 3px #ffd36e,0 0 0 6px #7a4be0,0 0 22px rgba(122,75,224,.7)}
+.fr-royal::after,body[data-frm=royal] :is(#v-me .av,.row.mine .av)::after{content:"👑";position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:18px}
 @keyframes frfl{to{box-shadow:0 0 0 3px #ffb02f,0 0 26px #ff3d2f}}
 @keyframes frrb{0%{box-shadow:0 0 0 3px #ff8fd8,0 0 16px #ff8fd8}25%{box-shadow:0 0 0 3px #ffd36e,0 0 16px #ffd36e}50%{box-shadow:0 0 0 3px #7dffd1,0 0 16px #7dffd1}75%{box-shadow:0 0 0 3px #7db8ff,0 0 16px #7db8ff}100%{box-shadow:0 0 0 3px #ff8fd8,0 0 16px #ff8fd8}}
 /* стили фишек */

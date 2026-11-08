@@ -11,7 +11,7 @@ window.EQ={};window.FXN='';
 function nm(id){return id?id.slice(2):''}
 function applyEq(eq){window.EQ=eq||{};var h=document.documentElement,b=document.body;
  [['th','theme'],['cs','chip']].forEach(function(p){var v=nm(EQ[p[1]]);v?h.dataset[p[0]]=v:delete h.dataset[p[0]]});
- var fr=nm(EQ.frame);fr?b.dataset.fr=fr:delete b.dataset.fr;window.FXN=nm(EQ.fx)}
+ var fr=nm(EQ.frame);fr?b.dataset.frm=fr:delete b.dataset.frm;window.FXN=nm(EQ.fx)}
 var _s=window.setMe;window.setMe=function(m){_s(m);if(m&&m.eq)applyEq(m.eq)};
 var _b=window.boom;window.boom=function(e){if(window.FXN&&window.fx&&fx.party)fx.party(window.FXN);else _b(e)};
 /* ---- вкладка Магазин ---- */

@@ -1,9 +1,9 @@
 import crypto from 'crypto';
 import { get, set, del, sadd, srem, smembers, mget, num, lock } from '../lib/db.js';
-import { tg } from '../lib/tg.js';
+import { tg, verify } from '../lib/tg.js';
 import { getSettings, saveSettings } from '../lib/settings.js';
 
-const GS = ['slots', 'flip', 'dice', 'roulette', 'crash', 'mines', 'blackjack', 'rps', 'hilo', 'durak', 'duel'];
+const GS = ['slots', 'flip', 'dice', 'roulette', 'crash', 'mines', 'blackjack', 'rps', 'hilo', 'durak', 'duel', 'plinko', 'blockblast', 'checkers', 'connect4', 'coblast', 'comines'];
 const secret = () => (process.env.ADMIN_PASSWORD || '') + '|' + (process.env.BOT_TOKEN || '');
 const sign = e => e + '.' + crypto.createHmac('sha256', secret()).update(String(e)).digest('hex');
 const eq = (a, b) => { a = Buffer.from(String(a)); b = Buffer.from(String(b)); return a.length === b.length && crypto.timingSafeEqual(a, b); };
@@ -29,6 +29,11 @@ export default async function handler(req, res) {
       if (!process.env.ADMIN_PASSWORD) return res.status(500).json({ error: 'ADMIN_PASSWORD не задан' });
       const ok = eq(d.login, process.env.ADMIN_LOGIN || 'admin') & eq(d.password, process.env.ADMIN_PASSWORD);
       if (!ok) { await new Promise(r => setTimeout(r, 800)); return res.status(401).json({ error: 'Неверный логин или пароль' }); }
+      return res.json({ token: sign(Date.now() + 12 * 3600000) });
+    }
+    if (action === 'tglogin') {
+      const ids = (process.env.ADMIN_IDS || process.env.ADMIN_CHAT_ID || '').split(',').map(s => s.trim()).filter(Boolean), u = verify(d.initData);
+      if (!u || !ids.includes(String(u.id))) return res.status(403).json({ error: 'Нет доступа' });
       return res.json({ token: sign(Date.now() + 12 * 3600000) });
     }
     if (!valid(req.headers['x-token'])) return res.status(401).json({ error: 'auth' });
