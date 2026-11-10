@@ -150,7 +150,7 @@ const ADMINS = (process.env.ADMIN_IDS || process.env.ADMIN_CHAT_ID || '').split(
 const BGN = { checkers: '♟️ Шашки', connect4: '🔴 Четыре в ряд', coblast: '🧩 Блок Бласт вдвоём', comines: '💣 Мины вдвоём' };
 const bgView = (m, role) => {
   const E_ = BG[m.game], my = m.status === 'active' && m.turn === role, st = m.st || {};
-  return { id: m.id, game: m.game, status: m.status, bet: m.bet, role, w: m.w, rev: m.rev, turn: m.turn, mv: m.mv, pay: m.pay, mult: m.mult, coop: !!E_.coop, opt: m.opt, oppId: role === 'a' ? m.b : m.a, st: E_.coop ? (m.st ? E_.pub(m.st, m.status === 'done') : null) : m.game === 'checkers' ? { bd: st.bd, last: st.last, q: st.q } : { g: st.g, last: st.last }, legal: my && !E_.coop ? (m.game === 'checkers' ? E_.legal(st, role).map(x => ({ p: x.p, c: x.c })) : E_.legal(st, role)) : [] };
+  return { id: m.id, game: m.game, status: m.status, bet: m.bet, role, w: m.w, rev: m.rev, turn: m.turn, mv: m.mv, pay: m.pay, mult: m.mult, rx: m.rx || null, coop: !!E_.coop, opt: m.opt, oppId: role === 'a' ? m.b : m.a, st: E_.coop ? (m.st ? E_.pub(m.st, m.status === 'done') : null) : m.game === 'checkers' ? { bd: st.bd, last: st.last, q: st.q } : { g: st.g, last: st.last }, legal: my && !E_.coop ? (m.game === 'checkers' ? E_.legal(st, role).map(x => ({ p: x.p, c: x.c })) : E_.legal(st, role)) : [] };
 };
 const PL = (r, e) => { const k = { low: [6, 2.5], mid: [40, 3], high: [260, 3.6] }[r], P = [1, 12, 66, 220, 495, 792, 924, 792, 495, 220, 66, 12, 1].map(x => x / 4096), w = P.map((_, i) => .3 + k[0] * Math.pow(Math.abs(i - 6) / 6, k[1])), t = w.reduce((a, x, i) => a + x * P[i], 0); return w.map(x => Math.floor(x / t * (1 - e / 100) * 100) / 100); };
 const BBS = [[[0,0]],[[0,0],[0,1]],[[0,0],[1,0]],[[0,0],[0,1],[0,2]],[[0,0],[1,0],[2,0]],[[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],[[0,0],[1,0],[1,1]],[[0,0],[0,1],[1,0]],[[0,0],[0,1],[0,2],[0,3]],[[0,0],[1,0],[2,0],[3,0]],[[0,0],[0,1],[1,1]],[[0,1],[1,0],[1,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,0],[0,1],[0,2],[1,0]]];
@@ -592,9 +592,11 @@ export default async function handler(req, res) {
       out = { list: ms.map(m => { const role = m.a === me ? 'a' : 'b', oid = role === 'a' ? m.b : m.a; return { id: m.id, game: m.game, status: m.status, bet: m.bet, role, w: m.w, turn: m.turn, opp: oid === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖' } : nm[oid] || { id: oid, nick: 'Игрок', avatar: '👤' } }; }) };
     } else if (a === 'bg_state') {
       const m = await get('bg:' + b.id); if (!m || (m.a !== me && m.b !== me)) throw new E('Игра не найдена');
+      if (b.rev && Number(b.rev) === m.rev) { out = { same: true }; } else {
       const role = m.a === me ? 'a' : 'b', oid = role === 'a' ? m.b : m.a, o = oid === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖' } : await get('user:' + oid);
       out = { bg: bgView(m, role), opp: o ? { id: o.id, nick: o.nick || o.name, avatar: o.avatar } : { id: oid, nick: 'Игрок', avatar: '👤' } };
-    } else if (a === 'bg_accept' || a === 'bg_decline' || a === 'bg_move' || a === 'bg_resign' || a === 'bg_claim' || a === 'bg_cash') {
+      }
+    } else if (a === 'bg_accept' || a === 'bg_decline' || a === 'bg_move' || a === 'bg_resign' || a === 'bg_claim' || a === 'bg_cash' || a === 'bg_react') {
       for (let i = 0; i < 8 && !mlk; i++) { if (await lock('mlock:' + b.id, 6)) mlk = 'mlock:' + b.id; else await sleep(120); }
       if (!mlk) throw new E('Подожди секунду…', 429);
       const m = await get('bg:' + b.id); if (!m || (m.a !== me && m.b !== me)) throw new E('Игра не найдена');
@@ -629,8 +631,12 @@ export default async function handler(req, res) {
         else if (m.b === 'bot') { const o2 = E_.apply(m.st, 'b', E_.bot(m.st, 'b')); m.st = o2.st; m.rev++; if (o2.res) await finish(o2.res); else m.turn = 'a'; }
         else {
           m.turn = flip(role); const oid = m[m.turn];
-          try { const T = await get('user:' + oid); if (T && T.notif?.on !== false && Date.now() - (T.seen || 0) > 90000) await tg('sendMessage', { chat_id: oid, text: `⏳ Твой ход в игре «${BGN[m.game]}» против ${p.nick || p.name}`, reply_markup: { inline_keyboard: [[{ text: 'Сходить', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } catch {}
+          if (Date.now() - (m.nt || 0) > 180000) try { const T = await get('user:' + oid); if (T && T.notif?.on !== false && Date.now() - (T.seen || 0) > 90000) { m.nt = Date.now(); await tg('sendMessage', { chat_id: oid, text: `⏳ Твой ход в игре «${BGN[m.game]}» против ${p.nick || p.name}`, reply_markup: { inline_keyboard: [[{ text: 'Сходить', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } } catch {}
         }
+      } else if (a === 'bg_react') {
+        const em = ['👍', '😂', '😮', '😡', '🔥', '🤝'].includes(b.e) ? b.e : null;
+        if (!em || m.b === 'bot' || m.status === 'pending') throw new E('Нельзя'); if (Date.now() - ((m.rx && m.rx.t) || 0) < 1500) throw new E('Не так быстро');
+        m.rx = { r: role, e: em, t: Date.now() }; m.rev++;
       } else if (a === 'bg_cash') {
         if (!E_.coop || m.status !== 'active') throw new E('Нельзя'); await finish({ t: 'coop', mult: E_.cash(m.st).mult });
       } else if (a === 'bg_resign') {
@@ -640,7 +646,7 @@ export default async function handler(req, res) {
         if (m.status !== 'active' || m.turn === role || m.b === 'bot') throw new E('Нельзя'); if (Date.now() - m.mv < 10 * 60 * 1000) throw new E('Соперник ещё может ходить');
         await finish(E_.coop ? { t: 'coop', mult: E_.cash(m.st).mult } : role);
       }
-      await set('bg:' + m.id, m); const oid2 = role === 'a' ? m.b : m.a, o2 = oid2 === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖' } : await get('user:' + oid2);
+      await set('bg:' + m.id, m); const oid2 = role === 'a' ? m.b : m.a, o2 = b.o ? null : oid2 === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖' } : await get('user:' + oid2);
       out = { bg: bgView(m, role), opp: o2 ? { id: o2.id, nick: o2.nick || o2.name, avatar: o2.avatar } : null };
     } else if (a === 'notif_set') {
       p.notif.on = !!b.on; out = {};
