@@ -1,0 +1,18 @@
+body{max-width:1180px!important;padding:18px!important;background:radial-gradient(80% 40% at 10% -5%,rgba(125,184,255,.16),transparent 60%),radial-gradient(70% 40% at 95% 0,rgba(255,143,216,.14),transparent 60%),#08070e!important}
+h1{background:linear-gradient(115deg,#ff8fd8,#ffd36e,#7dffd1,#7db8ff,#ff8fd8);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;animation:ad 8s linear infinite;font-size:26px!important}@keyframes ad{to{background-position:250% 0}}
+#app>h1{position:sticky;top:0;z-index:5;padding:10px 0;background-color:rgba(8,7,14,.7)}
+.tabs{position:sticky;top:52px;z-index:5;padding:8px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(16px)}
+.tabs button{flex:1;min-height:44px;border-radius:12px!important;background:transparent!important;color:#c9c8d4!important;font-weight:600;transition:.2s}
+.tabs button.on{background:linear-gradient(135deg,#d8b872,#ffe7a8)!important;color:#1a1409!important;box-shadow:0 6px 18px rgba(216,184,114,.3)}
+.box,table,.tab>div.row,#login{background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.1);border-radius:16px}
+.box{padding:18px!important;transition:transform .2s}.box:hover{transform:translateY(-3px)}.box b{font-size:28px!important;margin-top:4px}
+.grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))!important;gap:14px!important}
+table{display:block;overflow-x:auto;border-collapse:separate;padding:6px}tbody tr:hover td{background:rgba(255,255,255,.04)}th{font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+input,textarea,select{background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.14)!important;border-radius:12px!important;min-height:42px;transition:border-color .2s,box-shadow .2s}
+input:focus,textarea:focus,select:focus{outline:0;border-color:#d8b872!important;box-shadow:0 0 0 3px rgba(216,184,114,.2)}
+button{border-radius:12px!important;min-height:42px;transition:transform .12s,filter .2s}button:hover{filter:brightness(1.1)}button:active{transform:scale(.96)}
+#login{padding:28px;backdrop-filter:blur(16px)}.chk{padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.05)}
+.tab{animation:tb .25s}@keyframes tb{from{opacity:0;transform:translateY(8px)}}
+@media(max-width:600px){.tabs button{flex:1 1 44%}#app>h1{font-size:20px!important}}
+
+body.emb{padding:10px!important}body.emb #out{display:none}body.emb #app>h1{font-size:18px!important;padding:4px 0}body.emb .tabs{top:36px}

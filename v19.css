@@ -1,0 +1,43 @@
+/* v19: вкладка «Друзья», админка в приложении, ровное Плинко */
+.fhd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 2px 14px}.fhd h2{margin:0;font-size:26px}.fhd small{opacity:.7}
+.fadd{flex:none;min-height:46px;padding:0 18px;border-radius:16px;border:0;font-weight:800;font-size:15px;color:#171021;background:linear-gradient(115deg,#ff8fd8,#ffd36e,#7dffd1,#7db8ff);background-size:250% 250%;animation:irsl 6s linear infinite;box-shadow:0 8px 20px rgba(125,184,255,.3)}
+.fcard{padding:14px;border-radius:22px;margin-bottom:14px;background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.12)}
+.fcard>h3{margin:0 0 10px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.7}
+html.light .fcard{background:linear-gradient(160deg,#fff,rgba(255,255,255,.75));border-color:rgba(90,70,140,.14);box-shadow:0 8px 24px rgba(90,70,140,.1)}
+.fref{display:flex;align-items:center;gap:12px}.fref>span{font-size:30px}.fref div{flex:1}.fref small{display:block;opacity:.75;margin-top:2px}
+.fref button{flex:none;min-height:42px;padding:0 14px;border-radius:13px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:inherit;font-weight:700}
+.ffr{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid rgba(255,255,255,.08)}.ffr:first-of-type{border-top:0}
+html.light .ffr{border-color:rgba(90,70,140,.1)}
+.fav{position:relative;width:50px;height:50px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:26px;background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.05))}
+.fav i{position:absolute;right:0;bottom:1px;width:13px;height:13px;border-radius:50%;background:#6b6580;border:2px solid #14101f}.fav i.on{background:#2ee08a;box-shadow:0 0 8px #2ee08a}
+html.light .fav i{border-color:#fff}
+.fn{flex:1;min-width:0}.fn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fn small{opacity:.7}
+.fplay{flex:none;min-height:42px;padding:0 16px;border-radius:14px;border:0;font-weight:800;color:#171021;background:linear-gradient(115deg,#7dffd1,#7db8ff)}
+.fmore{flex:none;width:42px;min-height:42px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:inherit;font-size:20px;line-height:1}
+.femp{text-align:center;padding:22px 10px}.femp span{font-size:44px;display:block;margin-bottom:6px}.femp p{margin:0 0 14px;opacity:.75}
+.freq .ffr button{min-height:38px;padding:0 14px;border-radius:12px;border:0;font-weight:800}.freq .ok{background:#2ee08a;color:#07210f}.freq .no{background:rgba(255,255,255,.12);color:inherit;margin-left:6px}
+.fgr{display:flex;align-items:center;gap:12px;padding:10px 2px;border-top:1px solid rgba(255,255,255,.08)}.fgr:first-of-type{border-top:0}.fgr>span{font-size:26px}.fgr div{flex:1;min-width:0}.fgr small{display:block;opacity:.7}
+.fgr button{min-height:38px;padding:0 14px;border-radius:12px;border:0;font-weight:800;background:linear-gradient(115deg,#7dffd1,#7db8ff);color:#10202a}.fgr button.g{background:rgba(255,255,255,.12);color:inherit}
+.fgr .bdg{font-size:12px;font-weight:800;padding:5px 10px;border-radius:10px;background:rgba(255,255,255,.1);white-space:nowrap}.fgr .bdg.my{background:linear-gradient(115deg,#7dffd1,#7db8ff);color:#10202a}.fgr .win{color:#2ee08a;font-weight:800}.fgr .lose{color:#ff7a8a;font-weight:800}
+#dkm button.dng{color:#ff7a8a;border-color:rgba(255,122,138,.4)}#dkm .bi{display:flex;gap:10px;margin-bottom:10px}#dkm .bi input{flex:1;min-height:52px;border-radius:16px;font-size:17px;padding:0 14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:inherit}
+#dkm .bi button{width:auto;margin:0;padding:0 18px}#dkm .myid{text-align:center;margin-bottom:12px;opacity:.85}#dkm .myid b{font-size:22px;letter-spacing:.06em;color:var(--g,#d8b872)}
+#dkm button .sm2{display:block;font-size:12px;font-weight:500;opacity:.7}
+/* админка в приложении */
+#adm{position:fixed;inset:0;z-index:500;background:#08070e;display:flex;flex-direction:column;animation:shup .25s}
+#adm .admb{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;color:#fff;background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.1)}
+#adm .admb button{min-height:38px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-weight:700}
+#adm iframe{flex:1;width:100%;border:0;background:#08070e}
+#admc{display:flex;align-items:center;gap:12px;margin-top:12px;cursor:pointer}#admc span{font-size:28px}#admc div{flex:1}#admc small{display:block;opacity:.7}
+/* Плинко */
+.plw{max-width:440px;margin:0 auto}
+.plb{position:relative;margin:0 auto 6px;border-radius:20px;overflow:hidden;background:radial-gradient(120% 70% at 50% 0,rgba(125,184,255,.14),transparent 70%),rgba(255,255,255,.035)!important;border:1px solid rgba(255,255,255,.1)}
+.plb i{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#b9c3dc 60%,#7d89a8);box-shadow:0 0 6px rgba(185,195,220,.5);opacity:1;transition:transform .15s}
+.plb i.hit{animation:plhit .35s ease-out}@keyframes plhit{40%{transform:scale(1.9);box-shadow:0 0 16px #ffd36e;background:#ffd36e}}
+.plb u{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c4,#d8b872 55%,#8a6a26);box-shadow:0 0 16px rgba(216,184,114,.9),0 4px 8px rgba(0,0,0,.4);z-index:3;transition:left .17s linear,top .17s cubic-bezier(.4,0,.9,.7)}
+.plb .plm{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.1em;opacity:.55}
+.pls{display:grid;grid-auto-flow:column;gap:0;margin:0 auto 12px!important;width:auto!important}
+.pls b{display:grid;place-items:center;min-width:0;height:30px;border-radius:7px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);font-size:10px;font-weight:800;letter-spacing:-.02em;color:#fff;background:#3a3f4d;transition:transform .2s}
+.pls b.l{background:#3d6b57}.pls b.m{background:#8a6f2c}.pls b.h{background:#a8454f}.pls b.x{background:#b02e4e;box-shadow:0 0 10px rgba(255,80,120,.5)}.pls b.n{background:#3a3f4d}
+.pls b.hit{transform:translateY(5px) scale(1.2);box-shadow:0 0 16px rgba(255,211,110,.95);z-index:2}
+html.light .plb{border-color:rgba(90,70,140,.18)}html.light .plb i{background:#6a5b95;box-shadow:none}
+#dkm>div{max-height:88dvh;overflow-y:auto}

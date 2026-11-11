@@ -1,0 +1,62 @@
+/* v20: светлая тема нового уровня, плавность игр, переход в Садовест */
+/* ---------- плавность: во время игр отключаем тяжёлые эффекты ---------- */
+body.shx::before{animation:none!important}
+body.shx .card::after,body.shx .gc::after,body.shx h1,body.shx .bal,body.shx .go,body.shx .fadd{animation:none!important}
+body.shx #v-game{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(15,11,26,.97)!important}
+html.light body.shx #v-game{background:linear-gradient(180deg,#fcfaff,#f2edfb)!important}
+body.shx #v-game .back{position:sticky;top:-14px;z-index:5;width:max-content;margin:-4px 0 10px;padding:8px 14px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);backdrop-filter:none;-webkit-backdrop-filter:none}
+html.light body.shx #v-game .back{background:#fff;border-color:rgba(110,90,170,.16);box-shadow:0 4px 14px -4px rgba(110,80,200,.25)}
+.ckb,.c4b,.cmb,.bbg{contain:layout paint}
+.kpc{will-change:transform}
+/* ---------- БЕЛАЯ ТЕМА ---------- */
+html.light{--g:#b4760a;--g2:#8f5c05;--tx:#2b2342;--mut:#756c93;--ir:linear-gradient(115deg,#ff7eb6,#ffc65c,#5be0b0,#6aa8ff,#a98bff,#ff7eb6)}
+html.light body{background:#f6f2ff!important}
+html.light body::before{background:radial-gradient(70% 45% at 8% -5%,rgba(255,165,205,.6),transparent 62%),radial-gradient(70% 45% at 96% 0,rgba(140,195,255,.6),transparent 62%),radial-gradient(80% 55% at 50% 106%,rgba(150,255,215,.55),transparent 62%),radial-gradient(45% 35% at 100% 58%,rgba(255,225,140,.4),transparent 65%)}
+html.light .card,html.light .gc,html.light .row,html.light .fcard,html.light .shc,html.light .bgr{background:#fff!important;border:1px solid rgba(110,90,170,.12)!important;box-shadow:inset 0 1px 0 #fff,0 12px 32px -10px rgba(110,80,200,.26)!important}
+html.light .card::after,html.light .gc::after{opacity:.4}
+html.light .gc{transition:transform .18s,box-shadow .18s}html.light .gc:active{transform:scale(.96)}
+html.light .gc b,html.light .gc .t{color:#2b2342}
+html.light .sh{color:#756c93}html.light .sh:after{background:rgba(110,90,170,.18)}
+html.light .go{color:#2a1b4d!important;box-shadow:0 12px 26px -8px rgba(150,100,255,.55),inset 0 1px 0 rgba(255,255,255,.75)!important;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+html.light .opt button,html.light [data-chip],html.light .sht button{background:#fff!important;border:1px solid rgba(110,90,170,.2)!important;color:#3a3160!important;box-shadow:0 2px 0 rgba(110,90,170,.12)}
+html.light .opt button.on,html.light .sht button.on{border:2px solid transparent!important;background:linear-gradient(#fff,#fff) padding-box,var(--ir) border-box!important;color:#2a1b4d!important;font-weight:800}
+html.light .amt{color:var(--g)}
+html.light .bal{background:#fff!important;border-color:rgba(110,90,170,.16)!important;box-shadow:0 6px 18px -8px rgba(110,80,200,.35)}
+html.light .thm,html.light .top button{background:#fff;border-color:rgba(110,90,170,.16);color:#2b2342;box-shadow:0 4px 12px -4px rgba(110,80,200,.25)}
+html.light nav{background:rgba(255,255,255,.72)!important;border:1px solid rgba(110,90,170,.16)!important;box-shadow:0 14px 40px -10px rgba(110,80,200,.35)!important}
+html.light nav button{color:#6a6188!important}html.light nav button.on{color:#2a1b4d!important;background:#fff!important;box-shadow:0 6px 16px -4px rgba(110,80,200,.4)!important}
+/* Мины */
+html.light .mt{background:linear-gradient(160deg,#fff,#ebe5fa)!important;border:1px solid rgba(110,90,170,.2)!important;box-shadow:0 4px 0 rgba(110,90,170,.2)!important}
+html.light .mt.o{background:linear-gradient(160deg,#e9fff5,#c8f5df)!important;box-shadow:none!important}html.light .mt.o.m{background:linear-gradient(160deg,#ffecef,#ffc9d2)!important}
+/* Слоты, колесо и таблицы */
+html.light .reel,html.light .rl{box-shadow:0 8px 20px -8px rgba(20,10,60,.5)}
+html.light .tb,html.light table{color:#2b2342}
+html.light .msg.win{color:#16915f}html.light .msg.lose{color:#c2344a}
+/* Друзья, настольные игры, магазин */
+html.light .fav{background:linear-gradient(160deg,#f3eefc,#e5ddf8)}html.light .fav i{border-color:#fff}
+html.light .fmore{background:#fff;border-color:rgba(110,90,170,.2);color:#3a3160}
+html.light .bgm .av,html.light .bgr .av{background:#f1ecfb}
+html.light .bgst{color:#3a3160}html.light .bgst.my{color:#128a57}
+html.light .bgact button{background:#fff;border-color:rgba(110,90,170,.2);color:#3a3160}html.light .bgact .dng{color:#c2344a;border-color:rgba(194,52,74,.35)}
+html.light .ckb{border-color:#a97b4a;box-shadow:0 14px 30px -10px rgba(110,80,60,.5)}
+html.light .c4b{box-shadow:0 14px 30px -10px rgba(40,70,200,.5),inset 0 2px 0 rgba(255,255,255,.35)}
+html.light .bbg{background:#efe9fb!important;border-color:rgba(110,90,170,.2)}html.light .bbg div{background:#e1d8f5}
+html.light #dkm>div{background:rgba(255,255,255,.97);box-shadow:0 -20px 50px -12px rgba(110,80,200,.4)}
+html.light .shpv,html.light .pls b{color:#2b2342}
+/* исправления светлой темы: баланс и клетки Мин */
+html.light .bal,html.light .bal b{background:#fff!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;-webkit-text-fill-color:#8f5c05!important;color:#8f5c05!important;animation:none!important}
+html.light .bal b{background:transparent!important}
+html.light[data-cs=ruby] .bal,html.light[data-cs=ruby] .bal b{-webkit-text-fill-color:#c2344a!important}
+html.light[data-cs=emerald] .bal,html.light[data-cs=emerald] .bal b{-webkit-text-fill-color:#128a57!important}
+html.light[data-cs=sapphire] .bal,html.light[data-cs=sapphire] .bal b{-webkit-text-fill-color:#2f6fd6!important}
+html.light[data-cs=holo] .bal,html.light[data-cs=holo] .bal b{-webkit-text-fill-color:#8a52e0!important}
+html.light .mt .fr{background:linear-gradient(160deg,#fff,#e8e1f9)!important;border:1px solid rgba(110,90,170,.24)!important;box-shadow:inset 0 2px 0 #fff,0 4px 0 rgba(110,90,170,.24),0 10px 16px -6px rgba(110,80,200,.35)!important}
+html.light .mt .bk{background:linear-gradient(160deg,#e9fff5,#c8f5df)!important;border:2px solid #2ee08a!important}
+html.light .mt.m .bk{background:linear-gradient(160deg,#ffecef,#ffc9d2)!important;border-color:#e0394e!important}
+
+/* Friend matches stay in the game until a result or surrender. */
+body.bg-live nav{display:none!important}
+body.bg-live #v-game .back,body.bg-live #bgx,body.bg-live #dkx{display:none!important}
+body.bg-live{overscroll-behavior:none}
+.bgact button{min-height:56px!important;font-size:15px!important}
+.fgr button,.bgr button,.dkbt button{min-height:48px!important;padding-left:14px!important;padding-right:14px!important}

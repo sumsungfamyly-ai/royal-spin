@@ -1,0 +1,27 @@
+/* ---- производительность ---- */
+body{background:#0b0613!important}
+.bg3d{background:radial-gradient(circle at 50% -10%,#41136b,#0b0613 65%)}.lite .bg3d{display:block}.lite .bg3d img{display:none}
+.grid{perspective:none}.gc{transform-style:flat;will-change:auto}.gc .pic{transform:none}
+.rl .wi{filter:none}.rl{filter:drop-shadow(0 12px 8px rgba(0,0,0,.45))}.hd .ic{filter:none}.c3i>div .ic{filter:none}
+.ci{display:inline-block;height:1.15em;width:auto;vertical-align:-.22em;margin:0 2px}
+/* ---- шапка ---- */
+.thm{width:32px;height:32px;border-radius:50%;border:1px solid var(--l);background:var(--c);font-size:15px;margin-right:8px;padding:0;color:#fff}
+.hq{margin-right:6px}
+/* ---- как играть ---- */
+.how{margin-bottom:10px;background:#0d0818;border:1px solid #3a2a55;border-radius:12px;padding:9px 12px}.how summary{cursor:pointer;color:var(--g);font-weight:600}
+.how p{margin:8px 0 2px;font-size:14px;line-height:1.45;color:#c9bfe0}
+/* ---- кости: крупно и видно ---- */
+.tbl{height:255px;perspective:900px}.tbl .dz{top:58%}.tbl .dz.a{margin-left:-62px}.tbl .dz.b{margin-left:66px}
+.tbl .sc,.tbl .cb4,.tbl .cf4{width:92px;height:92px}.tbl .sc{left:-46px;top:-66px}
+.tbl .cf4{padding:13px;border-radius:16px}.tbl .cf4 i{width:17px;height:17px}
+.tbl .g1{transform:translateZ(46px)}.tbl .g2{transform:rotateY(90deg) translateZ(46px)}.tbl .g3{transform:rotateX(90deg) translateZ(46px)}
+.tbl .g4{transform:rotateX(-90deg) translateZ(46px)}.tbl .g5{transform:rotateY(-90deg) translateZ(46px)}.tbl .g6{transform:rotateY(180deg) translateZ(46px)}
+.tbl .cb4{transition:transform 2.1s cubic-bezier(.15,.65,.2,1)}
+.tbl .sd{left:-40px;top:38px;width:80px;height:22px}
+.dz.thr.a .sc{animation:th1v 2.3s linear forwards}.dz.thr.b .sc{animation:th2v 2.3s linear forwards}.dz.thr .sd{animation:shdv 2.3s linear forwards}
+@keyframes th1v{0%{transform:translate3d(-280px,110px,0) scale(.5)}30%{transform:translate3d(-90px,-96px,0) scale(1.25)}48%{transform:translate3d(-34px,26px,0) scale(1)}62%{transform:translate3d(-14px,-46px,0) scale(1.08)}76%{transform:translate3d(-4px,12px,0)}88%{transform:translate3d(0,-14px,0)}100%{transform:translate3d(0,0,0) scale(1)}}
+@keyframes th2v{0%{transform:translate3d(280px,100px,0) scale(.5)}30%{transform:translate3d(96px,-100px,0) scale(1.25)}48%{transform:translate3d(36px,22px,0) scale(1)}62%{transform:translate3d(16px,-42px,0) scale(1.08)}76%{transform:translate3d(5px,10px,0)}88%{transform:translate3d(0,-12px,0)}100%{transform:translate3d(0,0,0) scale(1)}}
+@keyframes shdv{0%{opacity:0;transform:scale(.3)}30%{opacity:.1;transform:scale(.5)}48%{opacity:.6;transform:scale(1)}62%{opacity:.25;transform:scale(.7)}76%{opacity:.55;transform:scale(.95)}88%{opacity:.4;transform:scale(.8)}100%{opacity:.55;transform:scale(1)}}
+/* ---- краш ---- */
+#cv{width:100%;height:auto;display:block;border-radius:14px;background:#0d0818;margin-bottom:10px}
+/* ---- светлая тема ---- */
