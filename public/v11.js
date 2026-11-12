@@ -6,7 +6,7 @@ function closeSheet(){if(document.body.classList.contains('shx'))nav('games')}
 bd.onclick=closeSheet;
 var og=window.openGame;window.openGame=function(g){og(g);document.body.classList.add('shx');var l=$_('#v-games');if(l)l.hidden=false;var v=$_('#v-game');if(v)v.scrollTop=0};
 var vg=$_('#v-game');if(vg){new MutationObserver(function(){if(vg.hidden)document.body.classList.remove('shx')}).observe(vg,{attributes:true,attributeFilter:['hidden']});
- var y0=null;vg.addEventListener('touchstart',function(e){y0=(vg.scrollTop<=0&&!document.body.classList.contains('fs')&&e.touches[0].clientY<vg.getBoundingClientRect().top+56)?e.touches[0].clientY:null},{passive:true});
+ var y0=null;vg.addEventListener('touchstart',function(e){y0=(vg.scrollTop<=0&&!document.body.classList.contains('fs')&&!document.body.classList.contains('gfs')&&e.touches[0].clientY<vg.getBoundingClientRect().top+56)?e.touches[0].clientY:null},{passive:true});
  vg.addEventListener('touchmove',function(e){if(y0!==null&&e.touches[0].clientY-y0>0)vg.style.transform='translateY('+(e.touches[0].clientY-y0)+'px)'},{passive:true});
  vg.addEventListener('touchend',function(e){if(y0===null)return;var d=e.changedTouches[0].clientY-y0;vg.style.transform='';y0=null;if(d>110)closeSheet()})}
 /* ---- Плинко ---- */

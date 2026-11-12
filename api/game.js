@@ -655,7 +655,7 @@ export default async function handler(req, res) {
     p.seen = Date.now();
     await Promise.all([...pend, ...(save ? Object.entries(dirty).map(([id, x]) => set('user:' + id, x)) : [])]);
     await relAll();
-    res.json({ me: pub(p, lvlUp), ...out });
+    res.json({ me: pub(p, lvlUp), act: { mines: !!p.mines, hilo: !!p.hilo, bj: !!p.bj, bb: !!p.bb, crash: !!(p.crash && crashM((Date.now() - p.crash.start) / 1000) < p.crash.cp) }, ...out });
   } catch (e) {
     await relAll();
     res.status(e instanceof E ? e.code : 500).json({ error: e.message });

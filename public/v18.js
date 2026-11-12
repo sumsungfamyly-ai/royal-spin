@@ -17,7 +17,7 @@ function friendPick(cb){api('social').then(function(r){var fs=(r.friends||[]).ma
  box('<h3>Выбери друга</h3>'+list.map(function(p){return'<button data-f="'+p.id+'">'+esc(p.avatar||'👤')+' '+esc(p.nick||p.name||'Игрок')+'</button>'}).join(''),function(m){m.querySelectorAll('[data-f]').forEach(function(b){b.onclick=function(){m.remove();cb(b.dataset.f)}})})}).catch(function(e){tg.showAlert(e.message)})}
 var timer=null;function stop(){clearInterval(timer);timer=null}
 function make(key){var I=INFO[key];return{t:I.t,i:I.i,d:I.coop?'вместе с другом':'онлайн и с ботом',r:function(){stop();lobby(key)}}}
-function lobby(key){var I=INFO[key];
+function lobby(key){var I=INFO[key];if(window.RS)RS.set('bg',false);
  $('#gbody').innerHTML='<div class="card bgl"><div class="bgh"><span class="bgi">'+I.i+'</span><b>'+I.t+'</b></div>'+(I.coop?'':'<button class="go" id="bgb">🤖 Играть с ботом</button>')+'<button class="go'+(I.coop?'':' sec2')+'" id="bgf">👥 '+(I.coop?'Играть вместе с другом':'Играть с другом')+'</button><h4>Мои партии</h4><div id="bgls"><small>Загрузка…</small></div></div>';
  if($('#bgb'))$('#bgb').onclick=function(){pickBet('Ставка против бота',function(b,m){api('bg_bot',{game:key,bet:b}).then(function(r){m.remove();open(key,r.bg.id)}).catch(function(e){m.remove();tg.showAlert(e.message)})})};
  $('#bgf').onclick=function(){friendPick(function(f){(key=='comines'?optPick:function(c){c(0)})(function(opt){pickBet('Ставка',function(b,m){api('bg_invite',{game:key,friend:f,bet:b,opt:opt}).then(function(r){m.remove();open(key,r.bg.id)}).catch(function(e){m.remove();tg.showAlert(e.message)})})})})};
@@ -31,12 +31,12 @@ function lobby(key){var I=INFO[key];
 /* ---- партия ---- */
 function open(key,id){stop();var V=null,O=null,sel=null,busy=false,fxd=false,dragging=false,pend=false,lastKey='',gone=false,lastRx=0;
  $('#gbody').innerHTML='<div class="card" id="bgv"><small>Загрузка…</small></div>';
- function apply(r){if(r.same)return;var prev=V,ch=!V||r.bg.rev!=V.rev||r.bg.status!=V.status;V=r.bg;if(r.opp)O=r.opp;if(V.rx&&V.rx.r!=V.role&&V.rx.t!==lastRx&&Date.now()-V.rx.t<8000){lastRx=V.rx.t;flash(V.rx.e)}
+ function apply(r){if(r.same)return;var prev=V,ch=!V||r.bg.rev!=V.rev||r.bg.status!=V.status;V=r.bg;if(window.RS)RS.set('bg',V.status=='active');if(r.opp)O=r.opp;if(V.rx&&V.rx.r!=V.role&&V.rx.t!==lastRx&&Date.now()-V.rx.t<8000){lastRx=V.rx.t;flash(V.rx.e)}
   if(ch){sel=null;if(prev&&V.status=='active'&&V.turn==V.role&&prev.turn!=prev.role)hap('m');if(dragging)pend=true;else draw()}}
  function flash(e){var d=document.createElement('div');d.className='bgfl';d.textContent=e;document.body.appendChild(d);setTimeout(function(){d.remove()},1700)}
  function hap(k){try{tg.HapticFeedback.impactOccurred(k=='m'?'medium':'light')}catch(e){}}
  function pull(){if(!$('#bgv')){gone=true;return stop()}if(busy)return;api('bg_state',{id:id,rev:V?Math.floor(V.rev):0}).then(apply).catch(function(){})}
- function loop(){if(gone||!$('#bgv')||(V&&V.status=='done')){gone=true;return stop()}var w=V&&V.status=='active'&&V.turn==V.role?5000:V&&(V.status=='active'||V.status=='pending')?1500:4000;if(!document.hidden)pull();timer=setTimeout(loop,document.hidden?3000:w)}
+ function loop(){if(gone||!$('#bgv')||(V&&V.status=='done')){gone=true;return stop()}var w=V&&V.status=='active'&&V.turn==V.role?3000:V&&(V.status=='active'||V.status=='pending')?1500:4000;if(!document.hidden)pull();timer=setTimeout(loop,document.hidden?3000:w)}
  document.addEventListener('visibilitychange',function(){if(!document.hidden&&$('#bgv')&&V&&V.status!='done')pull()});
  function size(){return Math.floor(Math.min(innerWidth-48,440,innerHeight*.55))}
  function draw(){var el=$('#bgv');if(!el)return;$$('.bbghost').forEach(function(g){g.remove()});var my=V.status=='active'&&V.turn==V.role,done=V.status=='done',pend=V.status=='pending',oppN=O?(O.nick||'Игрок'):'Соперник',pot=V.bet*2;
@@ -47,21 +47,22 @@ function open(key,id){stop();var V=null,O=null,sel=null,busy=false,fxd=false,dra
   if(key=='connect4'&&!pend&&!done)h+='<div class="c4hint">Ты играешь '+(V.role=='a'?'красными 🔴':'жёлтыми 🟡')+'</div>';
   if(V.oppId!='bot'&&!pend)h+='<div class="bgrx">'+['👍','😂','😮','😡','🔥','🤝'].map(function(e){return'<button data-rx="'+e+'">'+e+'</button>'}).join('')+'</div>';
   h+='<div class="bgact">';
-  if(V.coop&&V.status=='active'){h+='<button id="bgcash" style="background:linear-gradient(115deg,#ff8fd8,#ffd36e,#7dffd1);color:#171021;border:0;font-weight:800">Забрать'+(V.st.mult?' x'+V.st.mult+' ('+fmt(Math.floor(V.bet*V.st.mult))+')':'')+'</button><button id="bgx">К списку</button></div>';el.innerHTML=h;fit();bind();return}
+  if(V.coop&&V.status=='active'){h+='<button id="bgcash" style="background:linear-gradient(115deg,#ff8fd8,#ffd36e,#7dffd1);color:#171021;border:0;font-weight:800">Забрать'+(V.st.mult?' x'+V.st.mult+' ('+fmt(Math.floor(V.bet*V.st.mult))+')':'')+'</button></div>';el.innerHTML=h;fit();bind();return}
   if(pend&&V.role=='b')h+='<button class="ok" id="bga" style="background:#2ee08a;color:#07210f;border:0">Принять</button><button id="bgd">Отклонить</button>';
   else if(pend)h+='<button class="dng" id="bgr">Отменить</button>';
   else if(!done){h+='<button class="dng" id="bgr">Сдаться</button>';if(!my&&V.oppId!='bot'&&Date.now()-V.mv>6e5)h+='<button id="bgc">Забрать победу</button>'}
   else h+='<button id="bgn">'+(V.oppId!='bot'?'Реванш':'Новая партия')+'</button>';
-  h+='<button id="bgx">К списку</button></div>';el.innerHTML=h;fit();bind();slide();
+  h+=(V.status=='active'?'':'<button id="bgx">К списку</button>')+'</div>';el.innerHTML=h;fit();bind();slide();
   if(done&&!fxd&&V.coop){fxd=true;if(window.fx){if(V.pay>V.bet)fx.win({kind:'bb',title:'Победа вдвоём!',sub:'+'+fmt(V.pay-V.bet)+' 🪙'});else if(V.pay<V.bet)fx.lose({kind:'gen',title:(V.st&&V.st.boom!=null)?'Подорвались!':'Не повезло',sub:'−'+fmt(V.bet-V.pay)+' 🪙'})}}
   if(done&&!fxd){fxd=true;var win=V.w==V.role,paid=Math.floor(pot*(1-(cfg.duelFee||0)/100));if(window.fx){if(win)fx.win({kind:key=='checkers'?'dk':'bb',title:'Победа!',sub:'+'+fmt(paid)+' 🪙'});else if(V.w!='draw'&&V.w!='x')fx.lose({kind:'gen',title:'Поражение',sub:'−'+fmt(V.bet)+' 🪙'})}}}
   function slide(){if(key!='checkers'||!V.st||!V.st.last||V.st.last.length<2)return;var k=V.st.last.join('>');if(k===lastKey)return;lastKey=k;var b=$('.ckb');if(!b||!b.animate)return;var from=V.st.last[0],to=V.st.last[V.st.last.length-1],s=b.clientWidth/8,sg=V.role=='b'?-1:1,el=b.querySelector('[data-i="'+to+'"] .kpc');if(el)el.animate([{transform:'translate('+((from%8-to%8)*s*sg)+'px,'+(((from/8|0)-(to/8|0))*s*sg)+'px)'},{transform:'none'}],{duration:Math.min(420,170+70*(V.st.last.length-1)),easing:'cubic-bezier(.2,.8,.2,1)'})}
   function fit(){var b=$('.ckb,.c4b,.bbg,.cmb');if(b){var s=size();b.style.width=s+'px';b.style.height=(key=='connect4'?Math.round(s*6/7):s)+'px'}}
-  function act(a,p,saved){busy=true;if(O)p.o=1;hap('l');return api(a,p).then(function(r){busy=false;apply(r);if(!r.opp&&O==null)pull()}).catch(function(e){busy=false;if(saved){V=saved;draw()}tg.showAlert(e.message)})}
+  function resched(){if(gone||!$('#bgv'))return;clearTimeout(timer);timer=setTimeout(loop,1000)}
+ function act(a,p,saved){busy=true;if(O)p.o=1;hap('l');return api(a,p).then(function(r){busy=false;apply(r);resched();if(!r.opp&&O==null)pull()}).catch(function(e){busy=false;if(saved){V=saved;draw()}tg.showAlert(e.message)})}
   function bind(){var q=function(s){return $(s)};
    q('#bga')&&(q('#bga').onclick=function(){act('bg_accept',{id:id})});q('#bgd')&&(q('#bgd').onclick=function(){api('bg_decline',{id:id}).then(function(){G[key].r()})});
    q('#bgr')&&(q('#bgr').onclick=function(){var f=function(ok){if(ok)act('bg_resign',{id:id})};tg.showConfirm(V.status=='pending'?'Отменить приглашение?':'Сдаться? Ставка достанется сопернику.',f)});
-   q('#bgc')&&(q('#bgc').onclick=function(){act('bg_claim',{id:id})});q('#bgn')&&(q('#bgn').onclick=function(){if(V.oppId!='bot'&&V.status=='done'){api('bg_invite',{game:key,friend:V.oppId,bet:V.bet,opt:V.opt||0}).then(function(r){open(key,r.bg.id)}).catch(function(e){tg.showAlert(e.message)})}else G[key].r()});q('#bgx').onclick=function(){G[key].r()};$$('.bgrx [data-rx]').forEach(function(b){b.onclick=function(){flash(b.dataset.rx);api('bg_react',{id:id,e:b.dataset.rx,o:1}).catch(function(){})}});q('#bgcash')&&(q('#bgcash').onclick=function(){act('bg_cash',{id:id})});
+   q('#bgc')&&(q('#bgc').onclick=function(){act('bg_claim',{id:id})});q('#bgn')&&(q('#bgn').onclick=function(){if(V.oppId!='bot'&&V.status=='done'){api('bg_invite',{game:key,friend:V.oppId,bet:V.bet,opt:V.opt||0}).then(function(r){open(key,r.bg.id)}).catch(function(e){tg.showAlert(e.message)})}else G[key].r()});if(q('#bgx'))q('#bgx').onclick=function(){G[key].r()};$$('.bgrx [data-rx]').forEach(function(b){b.onclick=function(){flash(b.dataset.rx);api('bg_react',{id:id,e:b.dataset.rx,o:1}).catch(function(){})}});q('#bgcash')&&(q('#bgcash').onclick=function(){act('bg_cash',{id:id})});
    if(key=='comines')$$('.cmb i').forEach(function(c){c.onclick=function(){if(!busy&&V.status=='active'&&V.turn==V.role&&c.className.indexOf('op')<0)act('bg_move',{id:id,mv:{i:+c.dataset.i}})}});else if(key=='coblast')$$('.bbp button:not(:disabled)').forEach(function(b){b.onpointerdown=function(e){cbDrag(e,b)}});else if(key=='checkers')$$('.ckb i').forEach(function(c){c.onclick=function(){cell(+c.dataset.i)}});else $$('.c4b i').forEach(function(c){c.onclick=function(){drop(+c.dataset.i%7)}})}
   /* шашки */
   function ckHtml(){var flip=V.role=='b',bd=V.st.bd,my=V.status=='active'&&V.turn==V.role,L=V.legal||[],last=V.st.last||[],o='<div class="ckb'+(my?' my':'')+'">';
