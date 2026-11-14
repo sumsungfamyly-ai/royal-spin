@@ -36,12 +36,12 @@ function open(key,id){stop();var V=null,O=null,sel=null,busy=false,fxd=false,dra
  function flash(e){var d=document.createElement('div');d.className='bgfl';d.textContent=e;document.body.appendChild(d);setTimeout(function(){d.remove()},1700)}
  function hap(k){try{tg.HapticFeedback.impactOccurred(k=='m'?'medium':'light')}catch(e){}}
  function pull(){if(!$('#bgv')){gone=true;return stop()}if(busy)return;api('bg_state',{id:id,rev:V?Math.floor(V.rev):0}).then(apply).catch(function(){})}
- function loop(){if(gone||!$('#bgv')||(V&&V.status=='done')){gone=true;return stop()}var w=V&&V.status=='active'&&V.turn==V.role?3000:V&&(V.status=='active'||V.status=='pending')?1500:4000;if(!document.hidden)pull();timer=setTimeout(loop,document.hidden?3000:w)}
+ function loop(){if(gone||!$('#bgv')||(V&&V.status=='done')){gone=true;return stop()}var w=V&&V.free&&V.status=='active'?1000:V&&V.status=='active'&&V.turn==V.role?3000:V&&(V.status=='active'||V.status=='pending')?1500:4000;if(!document.hidden)pull();timer=setTimeout(loop,document.hidden?3000:w)}
  document.addEventListener('visibilitychange',function(){if(!document.hidden&&$('#bgv')&&V&&V.status!='done')pull()});
  function size(){return Math.floor(Math.min(innerWidth-48,440,innerHeight*.55))}
  function draw(){var el=$('#bgv');if(!el)return;$$('.bbghost').forEach(function(g){g.remove()});var my=V.status=='active'&&V.turn==V.role,done=V.status=='done',pend=V.status=='pending',oppN=O?(O.nick||'Игрок'):'Соперник',pot=V.bet*2;
   var st=pend?(V.role=='a'?'Ждём ответа соперника…':'Тебя приглашают в партию'):done?(V.w=='draw'?'Ничья, ставки возвращены':V.w=='x'?'Партия отменена':V.w==V.role?'Ты победил!':'Ты проиграл'):my?(key=='checkers'&&V.legal[0]&&V.legal[0].c.length?'Твой ход. Бить обязательно!':'Твой ход'):'Ход соперника…';
-  if(V.coop){var S0=V.st||{};st=pend?(V.role=='a'?'Ждём ответа напарника…':'Тебя зовут играть вместе'):done?(S0.boom!=null&&S0.boom!==undefined?'💥 Мина! Проиграли оба':V.pay>V.bet?'Выиграли вместе! +'+fmt(V.pay)+' 🪙':V.pay==V.bet?'Ставка возвращена':'Итог: '+fmt(V.pay)+' 🪙 каждому'):my?'Твой ход':'Ход напарника…'}
+  if(V.coop){var S0=V.st||{};st=pend?(V.role=='a'?'Ждём ответа напарника…':'Тебя зовут играть вместе'):V.free&&!done?'Ставьте фигуры вместе, без очереди':done?(S0.boom!=null&&S0.boom!==undefined?'💥 Мина! Проиграли оба':V.pay>V.bet?'Выиграли вместе! +'+fmt(V.pay)+' 🪙':V.pay==V.bet?'Ставка возвращена':'Итог: '+fmt(V.pay)+' 🪙 каждому'):my?'Твой ход':'Ход напарника…'}
   var h='<div class="bgm"><span class="av">'+esc((O&&O.avatar)||'👤')+'</span><div><b>'+esc(oppN)+'</b><small>Ставка '+fmt(V.bet)+' · банк '+fmt(pot)+' 🪙</small></div></div><div class="bgst'+(my?' my':'')+'">'+st+'</div>';
   if(!pend)h+=key=='checkers'?ckHtml():key=='connect4'?c4Html():key=='coblast'?cbHtml():cmHtml();
   if(key=='connect4'&&!pend&&!done)h+='<div class="c4hint">Ты играешь '+(V.role=='a'?'красными 🔴':'жёлтыми 🟡')+'</div>';
@@ -75,10 +75,10 @@ function open(key,id){stop();var V=null,O=null,sel=null,busy=false,fxd=false,dra
   /* совместные */
   function cmHtml(){var S=V.st,my=V.status=='active'&&V.turn==V.role,o='<div class="bbs"><span>Мин <b>'+S.cnt+'</b></span><span>Открыто <b>'+S.open.length+'</b></span><span>x<b>'+(S.mult||0)+'</b></span></div><div class="cmb'+(my?' my':'')+'">';
    for(var i=0;i<25;i++){var op=S.open.indexOf(i)>-1,mn=S.mines&&S.mines.indexOf(i)>-1;o+='<i data-i="'+i+'" class="'+(op?'op':mn?(S.boom===i?'bm':'mn'):'')+(S.last===i&&!mn?' klm':'')+'">'+(op?'💎':mn?(S.boom===i?'💥':'💣'):'')+'</i>'}return o+'</div>'}
-  function cbHtml(){var S=V.st,my=V.status=='active'&&V.turn==V.role,o='<div class="bbs"><span>Очки <b>'+S.sc+'</b></span><span>Ставка <b>'+fmt(V.bet)+'</b></span><span>x<b>'+S.mult+'</b></span></div><div class="bbg">';
+  function cbHtml(){var S=V.st,my=V.status=='active'&&(V.free||V.turn==V.role),o='<div class="bbs"><span>Очки <b>'+S.sc+'</b></span><span>Ставка <b>'+fmt(V.bet)+'</b></span><span>x<b>'+S.mult+'</b></span></div><div class="bbg">';
    for(var i=0;i<64;i++)o+='<div class="'+(S.bd[i]?'bc'+S.bd[i]:'')+(S.last&&S.last.indexOf(i)>-1?' bpop':'')+'"></div>';
    o+='</div><div class="bbp">'+S.pcs.map(function(s,i){return'<button data-i="'+i+'"'+(s===null||!my?' disabled':'')+'>'+(s===null?'':mini(s,16))+'</button>'}).join('')+'</div>';return o}
-  function cbDrag(e,btn){if(busy||!V||V.status!='active'||V.turn!=V.role)return;e.preventDefault();$$('.bbghost').forEach(function(g){g.remove()});dragging=true;var i=+btn.dataset.i,s=V.st.pcs[i],d=dims(s),g=$('.bbg').getBoundingClientRect(),cs=Math.max(14,Math.min(56,(g.width-35)/8)),cells=$$('.bbg div'),ghost=document.createElement('div'),pos=null;
+  function cbDrag(e,btn){if(busy||!V||V.status!='active'||(!V.free&&V.turn!=V.role))return;e.preventDefault();$$('.bbghost').forEach(function(g){g.remove()});dragging=true;var i=+btn.dataset.i,s=V.st.pcs[i],d=dims(s),g=$('.bbg').getBoundingClientRect(),cs=Math.max(14,Math.min(56,(g.width-35)/8)),cells=$$('.bbg div'),ghost=document.createElement('div'),pos=null;
    ghost.className='bbghost';ghost.style.gridTemplateColumns='repeat('+d.w+','+cs+'px)';
    for(var r=0;r<d.h;r++)for(var c=0;c<d.w;c++){var on=SH[s].some(function(q){return q[0]==r&&q[1]==c}),n=document.createElement('i');n.style.cssText='width:'+cs+'px;height:'+cs+'px;background:'+(on?COL[1+s%6]:'transparent');ghost.appendChild(n)}
    document.body.appendChild(ghost);btn.classList.add('drag');
@@ -88,7 +88,7 @@ function open(key,id){stop();var V=null,O=null,sel=null,busy=false,fxd=false,dra
    at(e.clientX,e.clientY);function mv(ev){at(ev.clientX,ev.clientY)}
    function up(){document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);document.removeEventListener('pointercancel',up);ghost.remove();dragging=false;btn.classList.remove('drag');cells.forEach(function(n){n.classList.remove('pv','bad')});if(pos)cbMove(i,s,pos);else if(pend){pend=false;draw()}}
    document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up)}
-  function cbMove(i,s,p){var S=V.st,bd=S.bd.slice(),pc=S.pcs.slice(),last=[],saved=V;SH[s].forEach(function(q){var k=(p.y+q[0])*8+p.x+q[1];bd[k]=1+s%6;last.push(k)});pc[i]=null;V=Object.assign({},V,{st:Object.assign({},S,{bd:bd,pcs:pc,last:last}),turn:V.role=='a'?'b':'a'});draw();act('bg_move',{id:id,mv:{i:i,x:p.x,y:p.y}},saved)}
+  function cbMove(i,s,p){var S=V.st,bd=S.bd.slice(),pc=S.pcs.slice(),last=[],saved=V;SH[s].forEach(function(q){var k=(p.y+q[0])*8+p.x+q[1];bd[k]=1+s%6;last.push(k)});pc[i]=null;V=Object.assign({},V,{st:Object.assign({},S,{bd:bd,pcs:pc,last:last}),turn:V.free?V.turn:(V.role=='a'?'b':'a')});draw();act('bg_move',{id:id,mv:{i:i,x:p.x,y:p.y}},saved)}
   /* четыре в ряд */
   function c4Html(){var g=V.st.g,last=V.st.last,my=V.status=='active'&&V.turn==V.role,win=V.status=='done'?c4line(g):[],o='<div class="c4b'+(my?' my':'')+'">';
    for(var i=0;i<42;i++){var v=g[i],r=(i/7)|0;o+='<i data-i="'+i+'" class="'+(win.indexOf(i)>-1?'kw ':'')+(last===i?'klm':'')+'">'+(v?'<b class="'+(v==1?'r':'y')+'" style="--dr:'+(r+1)+'"></b>':'')+'</i>'}return o+'</div>'}

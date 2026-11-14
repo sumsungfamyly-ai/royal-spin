@@ -25,3 +25,6 @@ body.fs #v-game,body.shx #v-game.bbmode{backdrop-filter:none!important;-webkit-b
 body.fs .go,body.fs h1,body.fs .card::after{animation:none!important}
 body.fs,body.fs *{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .bbp button{-webkit-tap-highlight-color:transparent}
+
+/* перетаскивание фигур на сенсорных экранах: браузер не должен перехватывать жест как прокрутку */
+.bbp button,.bbg{touch-action:none}

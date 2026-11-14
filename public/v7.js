@@ -38,7 +38,9 @@ G.durak={t:'Дурак',i:'🃏',d:'',r:function(){
  var d=document.createElement('details');d.className='how';d.innerHTML='<summary>ℹ️ Как играть</summary><p>Подкидной дурак на 36 картах, играешь с другом на ставку. Атакующий кладёт карту, защитник отбивает старшей картой той же масти или козырем. Можно подкидывать карты того же ранга, что уже на столе. Не можешь или не хочешь отбиваться, нажми «Взять». Когда колода закончилась, первый избавившийся от карт забирает банк. Зелёная подсветка показывает, какими картами можно ходить.</p>';$('#gbody').insertBefore(d,$('#gbody').firstChild);
  var oname=function(){return opp?esc(opp.nick):'Соперник'};
  var send=function(a,extra){return api(a,Object.assign({id:id},extra||{}))};
- var mv=function(m){if(mvBusy)return;mvBusy=true;send('durak_move',{mv:m}).then(function(r){mvBusy=false;sel=null;apply(r.durak)}).catch(function(e){mvBusy=false;toast(e.message)})};
+ var mv=function(m){if(mvBusy)return;mvBusy=true;var saved=v,rect=null,fl=null;
+  if(v&&v.status=='active'&&(m.k=='attack'||m.k=='defend')){var ce=document.querySelector('#dkh .dkc[data-c="'+m.c+'"]');rect=ce&&ce.getBoundingClientRect();var nv=JSON.parse(JSON.stringify(v));nv.hand=nv.hand.filter(function(c){return c!==m.c});if(m.k=='attack'){nv.table.push([m.c,null]);fl='#dkt .dkp:last-child .dkc'}else{nv.table[m.i][1]=m.c;fl='#dkt .dkp[data-i="'+m.i+'"] .dkc:nth-child(2)'}nv.legal={atk:[],def:{}};nv.turn=v.role=='a'?'b':'a';v=nv;sel=null;render();fly(fl,rect)}
+  send('durak_move',{mv:m}).then(function(r){mvBusy=false;sel=null;apply(r.durak);poll(true)}).catch(function(e){mvBusy=false;if(saved){v=saved;render()}toast(e.message)})};
  function status(){if(!v)return '';if(v.status=='pending')return v.role=='b'?'Тебя зовут сыграть в Дурака':'Ждём, когда соперник примет вызов';if(v.status=='done')return '';
   var my=v.turn==v.role,att=v.att==v.role;
   if(my&&att&&!v.table.length)return 'Твой ход: атакуй любой картой';
@@ -46,6 +48,8 @@ G.durak={t:'Дурак',i:'🃏',d:'',r:function(){
   if(my&&att)return 'Отбито! Подкинь карту того же ранга или нажми «Бито»';
   if(my)return sel!==null?'Выбери, какую карту бить':'Отбивайся или возьми карты';
   return 'Ход соперника… '+(v.last?'('+v.last+')':'')}
+ function size(el){var W=Math.max(240,(el.clientWidth||340)-28),n=v&&v.hand?v.hand.length:6,per=n<=4?Math.max(n,3):n<=8?4:5,cw=Math.max(46,Math.min(70,Math.floor((W-(per-1)*10)/per)));el.style.setProperty('--cw',cw+'px');el.style.setProperty('--tw',Math.round(cw*.82)+'px')}
+ function fly(selr,rect){var e=document.querySelector(selr);if(!e||!rect||!e.animate)return;var r=e.getBoundingClientRect();if(!r.width)return;e.animate([{transform:'translate('+(rect.left-r.left)+'px,'+(rect.top-r.top)+'px) scale('+(rect.width/r.width)+')',zIndex:9},{transform:'none',zIndex:9}],{duration:280,easing:'cubic-bezier(.2,.8,.2,1)'})}
  function render(){var el=$('#dk');if(!el)return;
   if(v.status=='pending'||(v.status=='done'&&!v.hand)){el.innerHTML='<div class="dkst">'+(v.status=='done'?'Вызов отменён':status())+'</div><div class="dkbt">'+(v.status=='pending'&&v.role=='b'?'<button class="go" id="dka">Принять · '+fmt(v.bet)+' 🪙</button><button class="sm r" id="dkd">Отклонить</button>':v.status=='pending'?'<button class="sm r" id="dkd">Отменить вызов</button>':'')+'</div>';bind();return}
   var h='',isDone=v.status=='done',pot=v.bet*2,paid=pot-Math.floor(pot*cfg.duelFee/100);
@@ -53,14 +57,14 @@ G.durak={t:'Дурак',i:'🃏',d:'',r:function(){
   h+='<div class="dko">'+Array.from({length:Math.min(v.oppN,14)}).map(function(){return '<div class="dkb"></div>'}).join('')+'<small>'+v.oppN+' карт</small></div>';
   h+='<div class="dkt" id="dkt">'+(v.table.length?v.table.map(function(pr,i){return '<div class="dkp'+(i>=prevT?' new':'')+(sel!==null&&v.legal.def[sel]&&v.legal.def[sel].indexOf(i)>-1?' tg':'')+'" data-i="'+i+'">'+card(pr[0])+(pr[1]!=null?card(pr[1]):'')+'</div>'}).join(''):'<small class="dkem">Стол пуст</small>')+'</div>';
   h+='<div class="dkst" id="dks">'+status()+'</div>';
-  h+='<div class="dkhn'+(v.hand.length>7?' tight':'')+'" id="dkh">'+v.hand.map(function(c){var ok=v.legal.atk.indexOf(c)>-1||!!v.legal.def[c];return card(c,(ok?'ok':'')+(sel===c?' sel':'')+(prevHand.length&&prevHand.indexOf(c)<0?' new':''))}).join('')+'</div>';
+  h+='<div class="dkhn'+''+'" id="dkh">'+v.hand.map(function(c){var ok=v.legal.atk.indexOf(c)>-1||!!v.legal.def[c];return card(c,(ok?'ok':'')+(sel===c?' sel':'')+(prevHand.length&&prevHand.indexOf(c)<0?' new':''))}).join('')+'</div>';
   if(!isDone){var my=v.turn==v.role,att=v.att==v.role;
    h+='<div class="dkbt">'+(my&&!att&&v.phase=='defend'?'<button class="sm p" id="dkt1">Взять карты</button>':'')+(my&&att&&v.table.length?'<button class="sm p" id="dkp">'+(v.taking?'Готово':'Бито')+'</button>':'')+'<button class="sm r" id="dkr">Сдаться</button></div>';
    if(!my&&Date.now()-v.mv>120000)h+='<div class="dkbt"><button class="sm" id="dkc">Соперник не ходит: забрать победу</button></div>';
   }else{var w=v.w==v.role,dr=v.w=='draw';
    h+='<div class="msg '+(w?'win':dr?'':'lose')+'" id="dkm">'+(dr?'Ничья, ставки возвращены':w?'Победа! +'+fmt(paid)+' 🪙':'Ты остался дураком, −'+fmt(v.bet)+' 🪙')+'</div><div class="dkbt"><button class="sm p" id="dkre">🔁 Реванш</button><button class="sm" id="dkx">К друзьям</button></div>';
    if(w&&!render.done){render.done=1;boom();snd('win')}else if(!w&&!dr&&!render.done){render.done=1;snd('lose')}}
-  el.innerHTML=h;prevHand=v.hand.slice();prevT=v.table.length;bind()}
+  el.innerHTML=h;size(el);prevHand=v.hand.slice();prevT=v.table.length;bind()}
  function bind(){var q=function(s,f){var e=$(s);if(e)e.onclick=f};
   q('#dka',function(){send('durak_accept').then(function(r){apply(r.durak)}).catch(function(e){toast(e.message)})});
   q('#dkd',function(){send('durak_decline').then(function(r){apply(r.durak)}).catch(function(e){toast(e.message)})});
@@ -74,7 +78,7 @@ G.durak={t:'Дурак',i:'🃏',d:'',r:function(){
    else{var ix=v.legal.def[x];if(!ix)return toast('Эта карта не бьёт');if(ix.length==1)mv({k:'defend',c:x,i:ix[0]});else{sel=x;render()}}}});
   $$('#dkt .dkp.tg').forEach(function(p){p.onclick=function(){var c=sel;sel=null;mv({k:'defend',c:c,i:+p.dataset.i})}})}
  function apply(nv){if(!nv)return;if(nv.rev===rev&&nv.status===st&&v)return;v=nv;rev=nv.rev;st=nv.status;render();snd('click')}
- function poll(){clearTimeout(pt);pt=setTimeout(async function(){if(!$('#dk'))return;try{var r=await send('durak_state',{rev:rev,st:st});if(r.durak){if(r.opp)opp=r.opp;apply(r.durak)}}catch(e){}if(!v||v.status!='done')poll()},(v&&v.status=='active'&&v.turn==v.role)?4500:1300);timers.push(pt)}
+ function poll(fast){clearTimeout(pt);pt=setTimeout(async function(){if(!$('#dk'))return;try{var r=await send('durak_state',{rev:rev,st:st});if(r.durak){if(r.opp)opp=r.opp;apply(r.durak)}}catch(e){}if(!v||v.status!='done')poll()},fast?650:(v&&v.status=='active'&&v.turn==v.role)?2200:900);timers.push(pt)}
  send('durak_state').then(function(r){opp=r.opp||null;apply(r.durak);poll()}).catch(function(e){$('#dk').innerHTML='<div class="msg lose">'+esc(e.message)+'</div>'})}};
 /* ---- «Друзья»: список игр в Дурака ---- */
 var _ds2=drawSocial;window.drawSocial=function(){_ds2();var L=soc.durak||[];var P=Object.fromEntries(soc.people.map(function(p){return [p.id,p]})),nm=function(id){return id=='bot'?'🤖 Бот':esc((P[id]&&P[id].nick)||'Игрок')};

@@ -1,0 +1,39 @@
+/* v23: Дурак крупнее и плавнее, карты не закрывают друг друга */
+#v-game #dk{display:flex;flex-direction:column;gap:9px;min-height:calc(100dvh - 130px);padding:14px 12px 18px}
+html body #dk .dkc{width:var(--cw,64px)!important;height:calc(var(--cw,64px)*1.42)!important;border-radius:calc(var(--cw,64px)*.14)!important;flex:none}
+html body #dk .dkc b{font-size:calc(var(--cw,64px)*.4)!important}
+html body #dk .dkc i{font-size:calc(var(--cw,64px)*.48)!important}
+html body #dk .dkc.sm{width:calc(var(--cw,64px)*.66)!important;height:calc(var(--cw,64px)*.94)!important}
+html body #dk .dkc.sm b{font-size:calc(var(--cw,64px)*.26)!important}html body #dk .dkc.sm i{font-size:calc(var(--cw,64px)*.3)!important}
+/* рука: несколько рядов, без наложения */
+html body #dk .dkhn{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:16px 10px!important;overflow:visible!important;padding:18px 2px 6px!important;scroll-snap-type:none}
+html body #dk .dkhn>.dkc,html body #dk .dkhn .dkc+.dkc,html body #dk .dkhn>.dkc:first-child,html body #dk .dkhn>.dkc:last-child{margin:0!important}
+html body #dk .dkc.ok{transform:translateY(-8px)!important}html body #dk .dkc.sel{transform:translateY(-14px)!important}
+html body #dk .dkhn:has(.ok) .dkc:not(.ok):not(.sel){filter:brightness(.78) saturate(.85)}
+/* стол: пары карт сетками, обе карты видны */
+html body #dk .dkt{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(calc(var(--tw,52px)*1.85),1fr));gap:16px 8px!important;align-content:center;justify-items:center;flex:1;min-height:calc(var(--tw,52px)*2.6)!important;padding:14px 10px!important;border-radius:28px!important;margin:0!important}
+html body #dk .dkp{width:calc(var(--tw,52px)*1.8)!important;height:calc(var(--tw,52px)*1.55)!important;margin:0!important}
+html body #dk .dkp .dkc{width:var(--tw,52px)!important;height:calc(var(--tw,52px)*1.42)!important;position:absolute!important;left:0!important;top:0!important}
+html body #dk .dkp .dkc b{font-size:calc(var(--tw,52px)*.4)!important}html body #dk .dkp .dkc i{font-size:calc(var(--tw,52px)*.48)!important}
+html body #dk .dkp .dkc:nth-child(2){left:calc(var(--tw,52px)*.8)!important;top:calc(var(--tw,52px)*.12)!important;transform:rotate(6deg)!important}
+html body #dk .dkp.tg .dkc:first-child{box-shadow:0 0 0 3px #2ee08a,0 0 20px rgba(46,224,138,.7)!important}
+html body #dk .dkem{opacity:.6;font-size:14px;grid-column:1/-1;text-align:center}
+/* соперник */
+html body #dk .dko{margin:0!important;min-height:calc(var(--cw,64px)*.9)}
+html body #dk .dkb{width:calc(var(--cw,64px)*.56)!important;height:calc(var(--cw,64px)*.8)!important;margin-left:calc(var(--cw,64px)*-.22)!important}
+html body #dk .dkb:first-child{margin-left:0!important}
+/* статус и кнопки покрупнее */
+html body #dk .dkst{font-size:16px;font-weight:800;text-align:center;min-height:24px}
+html body #dk .dkbt{display:flex;gap:10px;justify-content:center}html body #dk .dkbt button{min-height:52px;padding:0 22px;border-radius:18px;font-weight:800;font-size:15px}
+/* плавное появление новых карт: свои вылетают из руки, карты соперника падают сверху */
+html body #dk .dkp.new .dkc,html body #dk .dkc.new{animation:dkpop .32s cubic-bezier(.2,.8,.2,1) both}
+@keyframes dkpop{from{opacity:0;transform:translateY(-26px) scale(.9)}to{opacity:1}}
+html body #dk .dkp.new .dkc:nth-child(2){animation-name:dkpop2}
+@keyframes dkpop2{from{opacity:0;transform:translateY(-18px) rotate(0deg) scale(.9)}to{opacity:1;transform:rotate(6deg)}}
+#dk .dkc,#dk .dkp{transition:transform .2s,filter .2s,box-shadow .2s}
+body.shx #dk .dkp.new .dkc{will-change:transform}
+
+/* закреплённая кнопка «Все игры» непрозрачная, чтобы не просвечивала при прокрутке */
+html body.gfs #v-game .back{background:#181331!important}
+html.light body.gfs #v-game .back{background:#fff!important}
+html body.gfs #v-game .back~*{position:relative}
