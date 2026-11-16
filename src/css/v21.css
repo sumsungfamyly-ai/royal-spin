@@ -1,0 +1,19 @@
+/* v21: игры на весь экран, блокировка выхода во время раунда */
+body.gfs nav,body.gfs #shbd{display:none!important}
+body.gfs.shx #v-game{position:fixed!important;inset:0!important;max-height:none!important;height:100dvh!important;border-radius:0!important;border:0!important;box-shadow:none!important;padding:calc(12px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom))!important;animation:gin .26s ease-out}
+body.gfs #v-game::before{display:none!important}
+body.gfs:not(.fs) #v-game>*{max-width:540px;margin-left:auto;margin-right:auto}
+body.gfs{overflow:hidden}
+@keyframes gin{from{opacity:.3;transform:scale(.985)}}
+#v-game .back{font-weight:700}
+body.glock #v-game .back,body.glock #fsx{visibility:hidden;pointer-events:none}
+#glb{display:none;position:fixed;top:calc(12px + env(safe-area-inset-top));left:14px;z-index:70;padding:8px 12px;border-radius:12px;font-size:12px;font-weight:700;color:#ffd36e;background:rgba(255,211,110,.14);border:1px solid rgba(255,211,110,.4);pointer-events:none}
+body.glock.gfs #glb{display:block}
+html.light #glb{color:#8f5c05;background:#fff3cf;border-color:rgba(180,118,10,.4)}
+.glshake{animation:fxshk .4s}
+/* непрозрачный фон полноэкранной игры, лобби под ней скрыто */
+body.gfs.shx #v-game{background:linear-gradient(180deg,#120d20,#0a0715)!important}
+html.light body.gfs.shx #v-game{background:linear-gradient(180deg,#fcfaff,#f1ecfb)!important}
+body.gfs #v-games{visibility:hidden}
+body.gfs.fs.shx #v-game{background:radial-gradient(100% 60% at 50% 0,rgba(125,184,255,.25),transparent 70%),#08060f!important}
+html.light body.gfs.fs.shx #v-game{background:radial-gradient(100% 60% at 50% 0,rgba(125,184,255,.4),transparent 70%),#f6f3fc!important}

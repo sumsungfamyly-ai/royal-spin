@@ -1,0 +1,9 @@
+/* v17: исправления после аудита */
+.dkhn{justify-content:flex-start!important;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+.dkhn>.dkc{flex:none}.dkhn>.dkc:first-child{margin-left:auto}.dkhn>.dkc:last-child{margin-right:auto}
+.dkhn.tight .dkc+.dkc{margin-left:-24px!important}.dkhn.tight .dkc.ok:hover{z-index:2}
+.pls{width:86.67%;margin:0 auto 10px!important}
+body.shx #v-game .back{position:sticky;top:-14px;z-index:5;margin:-4px 0 10px;padding:10px 6px;background:linear-gradient(180deg,rgba(14,10,24,.92) 60%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+html.light body.shx #v-game .back{background:linear-gradient(180deg,rgba(250,248,255,.95) 60%,transparent)}
+body.fs #v-game .back{display:none}
+html.light{--bg:#f4f1fb;--bg2:#ebe6f6;--c:#ffffff;--c2:#f1edfa;--l:rgba(90,70,140,.14);--l2:rgba(90,70,140,.26);--tx:#2a2340;--mut:#6b6388;--g:#8a5f00;--g2:#6f4c00;--ok:#1f8a5b;--bad:#c2344a;--sh:0 8px 22px rgba(90,70,140,.16)}

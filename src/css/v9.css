@@ -1,0 +1,20 @@
+/* ====== v9: игры по разделам ====== */
+#gg{display:block}
+.gsr{position:relative;margin-bottom:10px}.gsi{position:absolute;left:13px;top:50%;margin-top:-8px;width:16px;height:16px;stroke:var(--mut);fill:none;stroke-width:1.8;stroke-linecap:round}
+.gsr input{padding:12px 12px 12px 38px;text-align:left;font-size:15px;border-radius:14px}
+.cats{display:flex;gap:8px;overflow-x:auto;margin:0 -2px 4px;padding:2px;scrollbar-width:none}.cats::-webkit-scrollbar{display:none}
+.ct{flex:none;padding:8px 15px;border-radius:999px;border:1px solid var(--l2);background:transparent;color:var(--mut);font-size:13px;font-weight:600;white-space:nowrap}
+.ct.on{color:var(--btn);background:linear-gradient(180deg,#ecd59b,#b48c40);border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 3px 8px rgba(0,0,0,.3)}
+.sh{display:flex;justify-content:space-between;align-items:center;margin:20px 2px 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);font-weight:600}
+.sh:after{content:"";flex:1;height:1px;background:var(--l);margin-left:12px;order:1}.sh i{order:2;font-style:normal;color:var(--g);margin-left:10px}.sh span{order:0}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.sg .gc{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 6px 10px;min-height:116px;border-radius:18px;box-shadow:var(--sh)}
+.sg .gc .pic{height:54px;margin-bottom:8px;justify-content:center}.sg .gc .pic .ic{height:50px;max-width:62px;object-fit:contain}.sg .gc .tpic{width:54px;height:54px;border-radius:14px}
+.svgic{width:48px;height:48px;stroke:var(--g);fill:none;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.sg .gc b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.sg .gc small{font-size:10.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rcs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}.rcs::-webkit-scrollbar{display:none}
+.rcb{flex:none;display:flex;align-items:center;gap:8px;padding:7px 14px 7px 8px;border-radius:14px;background:var(--c);border:1px solid var(--l);color:var(--tx);font-size:13px;font-weight:600}
+.rcb .pic{display:flex;align-items:center;width:28px;height:28px;justify-content:center}.rcb .ic{height:26px;width:auto;max-width:28px;object-fit:contain}.rcb .tpic{width:28px;height:28px;border-radius:8px}.rcb .svgic{width:26px;height:26px}
+.gnone{text-align:center;color:var(--mut);padding:30px 0}
+#bonus.bnr{margin:0 0 14px}
