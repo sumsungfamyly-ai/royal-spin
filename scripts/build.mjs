@@ -32,14 +32,22 @@ if (cssAt < 0 || jsAt < 0) throw new Error('Не найдены подключе
 const cssOut = esbuild.transformSync(css.join('\n'), { loader: 'css', minify: true, target: ['chrome87', 'safari14'], legalComments: 'none' }).code;
 const jsOut = esbuild.transformSync(js.join('\n;\n'), { minify: true, target: 'es2020', legalComments: 'none' }).code;
 const h8 = s => crypto.createHash('sha256').update(s).digest('hex').slice(0, 8);
-const cssName = `app.${h8(cssOut)}.css`, jsName = `app.${h8(jsOut)}.js`;
+// Версия серверной части: хеш api/*.js и lib/*.js (кроме lib/version.js). Сервер отдаёт её в каждом ответе,
+// а приложение знает, какую версию ждёт: так видно, если файлы загружены в репозиторий не все.
+const backend = [...fs.readdirSync(path.join(root, 'api')).map(f => 'api/' + f), ...fs.readdirSync(path.join(root, 'lib')).filter(f => f !== 'version.js').map(f => 'lib/' + f)].sort();
+const apiBuild = h8(backend.map(f => f + '\n' + fs.readFileSync(path.join(root, f), 'utf8')).join('\n'));
+const verFile = path.join(root, 'lib/version.js'), verSrc = `// Создаётся скриптом scripts/build.mjs, руками не править\nexport const BUILD = '${apiBuild}';\n`;
+if (!fs.existsSync(verFile) || fs.readFileSync(verFile, 'utf8') !== verSrc) fs.writeFileSync(verFile, verSrc);
+const jsFinal = `window.__EXPECT="${apiBuild}";` + jsOut;
 for (const f of fs.readdirSync(PUB)) if (/^app\.[0-9a-f]{8}\.(css|js)$/.test(f)) fs.unlinkSync(path.join(PUB, f));
-fs.writeFileSync(path.join(PUB, cssName), cssOut); fs.writeFileSync(path.join(PUB, jsName), jsOut);
+const cssName = 'app.css', jsName = 'app.js', cssV = h8(cssOut), jsV = h8(jsFinal);
+fs.writeFileSync(path.join(PUB, cssName), cssOut); fs.writeFileSync(path.join(PUB, jsName), jsFinal);
+const FAIL = "document.body.insertAdjacentHTML('afterbegin','<div style=&quot;padding:24px;text-align:center;font:16px system-ui;color:#c2344a&quot;>Не загрузился файл приложения. Обнови страницу. Если не помогает, проверь, что в репозитории есть public/app.js и public/app.css</div>')";
 let out = ''; let last = 0;
 toks.forEach((t, i) => {
   out += html.slice(last, t.at); last = t.at + t.text.length;
-  if (i === cssAt) out += `<link rel="stylesheet" href="/${cssName}">`;
-  else if (i === jsAt) out += `<script src="/${jsName}"></script>`;
+  if (i === cssAt) out += `<link rel="stylesheet" href="/${cssName}?v=${cssV}" onerror="${FAIL}">`;
+  else if (i === jsAt) out += `<script src="/${jsName}?v=${jsV}" onerror="${FAIL}"></script>`;
   else if (!remove.has(i)) out += t.text;
 });
 out += html.slice(last);
@@ -47,4 +55,4 @@ out = out.replace('<title>', '<link rel="preconnect" href="https://telegram.org"
 out = out.replace('<!doctype html>', '<!doctype html><!-- ФАЙЛ СОБРАН СКРИПТОМ scripts/build.mjs, правь src/index.html -->');
 fs.writeFileSync(path.join(PUB, 'index.html'), out);
 const size = s => `${(Buffer.byteLength(s) / 1024).toFixed(1)} КБ (gzip ${(zlib.gzipSync(s).length / 1024).toFixed(1)}, brotli ${(zlib.brotliCompressSync(s).length / 1024).toFixed(1)})`;
-console.log(`css: ${css.length} частей -> ${cssName}  ${size(cssOut)}\njs:  ${js.length} частей -> ${jsName}  ${size(jsOut)}\nindex.html: ${size(out)}`);
+console.log(`css: ${css.length} частей -> ${cssName}?v=${cssV}  ${size(cssOut)}\njs:  ${js.length} частей -> ${jsName}?v=${jsV}  ${size(jsFinal)}\nindex.html: ${size(out)}\nсерверная сборка: ${apiBuild}`);

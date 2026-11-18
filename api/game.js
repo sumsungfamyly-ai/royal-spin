@@ -1,9 +1,12 @@
 import crypto from 'crypto';
-import { get, set, del, sadd, smembers, mget, incr, lock, once } from '../lib/db.js';
+import { get, set, del, sadd, srem, smembers, mget, incr, lock, once } from '../lib/db.js';
 import { verify, tg } from '../lib/tg.js';
 import { getSettings } from '../lib/settings.js';
 import { SHOP, SHOP_CATS } from '../lib/shop.js';
 import { BG, bbTray } from '../lib/board.js';
+import { BUILD } from '../lib/version.js';
+import { START as ELO0, league, eloPair } from '../lib/elo.js';
+const MMW = Number(process.env.MM_WAIT_MS) || 10000;
 
 const rnd = n => crypto.randomInt(n);
 const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
@@ -102,7 +105,7 @@ const pub = (p, up) => {
   const l = lvl(p.xp);
   return { id: String(p.id), nick: p.nick || p.name, avatar: p.avatar, bio: p.bio, balance: p.balance, level: l, xp: p.xp,
     xpFrom: 500 * (l - 1) ** 2, xpTo: 500 * l * l, wins: p.wins, games: p.games, biggest: p.biggest,
-    friends: p.friends.length, requests: p.reqIn.length, bonusIn: p.bonusAt ? Math.max(0, p.bonusAt + BONUS_CD - Date.now()) : 0, streak: effStreak(p, Date.now()), refs: p.refs, lvlUp: up || 0, eq: p.shop?.eq || {}, notif: p.notif?.on !== false, admin: ADMINS.includes(String(p.id)), lb: p.lb.s, lbNote: p.lb.note || '', lbAt: p.lb.t || 0, crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
+    friends: p.friends.length, requests: p.reqIn.length, bonusIn: p.bonusAt ? Math.max(0, p.bonusAt + BONUS_CD - Date.now()) : 0, streak: effStreak(p, Date.now()), refs: p.refs, lvlUp: up || 0, eq: p.shop?.eq || {}, elo: p.elo || {}, eg: p.eg || {}, notif: p.notif?.on !== false, admin: ADMINS.includes(String(p.id)), lb: p.lb.s, lbNote: p.lb.note || '', lbAt: p.lb.t || 0, crash: !!p.crash, wheelIn: Math.max(0, (p.wheelAt || 0) + 864e5 - Date.now()) };
 };
 const lite = (x, now) => ({ id: String(x.id), nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), online: now - (x.lastSeen || 0) < 120000 });
 const pickSym = sy => {
@@ -150,7 +153,7 @@ const ADMINS = (process.env.ADMIN_IDS || process.env.ADMIN_CHAT_ID || '').split(
 const BGN = { checkers: '♟️ Шашки', connect4: '🔴 Четыре в ряд', coblast: '🧩 Блок Бласт вдвоём', comines: '💣 Мины вдвоём' };
 const bgView = (m, role) => {
   const E_ = BG[m.game], my = m.status === 'active' && m.turn === role, st = m.st || {};
-  return { id: m.id, game: m.game, status: m.status, bet: m.bet, role, w: m.w, rev: m.rev, turn: m.turn, mv: m.mv, pay: m.pay, mult: m.mult, rx: m.rx || null, coop: !!E_.coop, free: !!E_.free, opt: m.opt, oppId: role === 'a' ? m.b : m.a, st: E_.coop ? (m.st ? E_.pub(m.st, m.status === 'done') : null) : m.game === 'checkers' ? { bd: st.bd, last: st.last, q: st.q } : { g: st.g, last: st.last }, legal: my && !E_.coop ? (m.game === 'checkers' ? E_.legal(st, role).map(x => ({ p: x.p, c: x.c })) : E_.legal(st, role)) : [] };
+  return { id: m.id, game: m.game, status: m.status, bet: m.bet, role, w: m.w, rev: m.rev, turn: m.turn, mv: m.mv, pay: m.pay, mult: m.mult, rx: m.rx || null, elo: m.eloD || null, mm: !!m.mm, coop: !!E_.coop, free: !!E_.free, opt: m.opt, oppId: role === 'a' ? m.b : m.a, st: E_.coop ? (m.st ? E_.pub(m.st, m.status === 'done') : null) : m.game === 'checkers' ? { bd: st.bd, last: st.last, q: st.q } : { g: st.g, last: st.last }, legal: my && !E_.coop ? (m.game === 'checkers' ? E_.legal(st, role).map(x => ({ p: x.p, c: x.c })) : E_.legal(st, role)) : [] };
 };
 const PL = (r, e) => { const k = { low: [6, 2.5], mid: [40, 3], high: [260, 3.6] }[r], P = [1, 12, 66, 220, 495, 792, 924, 792, 495, 220, 66, 12, 1].map(x => x / 4096), w = P.map((_, i) => .3 + k[0] * Math.pow(Math.abs(i - 6) / 6, k[1])), t = w.reduce((a, x, i) => a + x * P[i], 0); return w.map(x => Math.floor(x / t * (1 - e / 100) * 100) / 100); };
 const BBS = [[[0,0]],[[0,0],[0,1]],[[0,0],[1,0]],[[0,0],[0,1],[0,2]],[[0,0],[1,0],[2,0]],[[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],[[0,0],[1,0],[1,1]],[[0,0],[0,1],[1,0]],[[0,0],[0,1],[0,2],[0,3]],[[0,0],[1,0],[2,0],[3,0]],[[0,0],[0,1],[1,1]],[[0,1],[1,0],[1,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,0],[0,1],[0,2],[1,0]]];
@@ -615,6 +618,12 @@ export default async function handler(req, res) {
           A.games++; B.games++; A.xp += Math.min(m.bet, 500); B.xp += Math.min(m.bet, 500);
           track(A, m.game, m.bet, w === 'a' ? paid : w === 'draw' ? m.bet : 0); track(B, m.game, m.bet, w === 'b' ? paid : w === 'draw' ? m.bet : 0);
           pend.push(Promise.all([incr('g:' + m.game + ':bets', pot), incr('g:' + m.game + ':payouts', w === 'draw' ? pot : paid), incr('g:' + m.game + ':n', 1)]));
+          if (m.b !== 'bot' && m.a !== 'bot' && !BG[m.game].coop) {
+            const ra = (A.elo && A.elo[m.game]) || ELO0, rb = (B.elo && B.elo[m.game]) || ELO0, [na, nb] = eloPair(ra, rb, w === 'a' ? 1 : w === 'draw' ? .5 : 0);
+            A.elo = { ...(A.elo || {}), [m.game]: na }; B.elo = { ...(B.elo || {}), [m.game]: nb };
+            A.eg = { ...(A.eg || {}), [m.game]: ((A.eg && A.eg[m.game]) || 0) + 1 }; B.eg = { ...(B.eg || {}), [m.game]: ((B.eg && B.eg[m.game]) || 0) + 1 };
+            m.eloD = { a: na - ra, b: nb - rb, ra: na, rb: nb };
+          }
         }
       };
       const flip = r => (r === 'a' ? 'b' : 'a');
@@ -648,6 +657,60 @@ export default async function handler(req, res) {
       }
       await set('bg:' + m.id, m); const oid2 = role === 'a' ? m.b : m.a, o2 = b.o ? null : oid2 === 'bot' ? { id: 'bot', nick: 'Бот', avatar: '🤖' } : await get('user:' + oid2);
       out = { bg: bgView(m, role), opp: o2 ? { id: o2.id, nick: o2.nick || o2.name, avatar: o2.avatar } : null };
+    } else if (a === 'mm_join') {
+      const gm = String(b.game); if (!BG[gm] || BG[gm].coop) throw new E('Для этой игры нет подбора'); on(gm); const bt = stake(b.bet);
+      if (await get('mm:' + me)) throw new E('Ты уже ищешь соперника');
+      const key = `mmq:${gm}:${bt}`;
+      for (let i = 0; i < 8 && !mlk; i++) { if (await lock('mmlock:' + key, 6)) mlk = 'mmlock:' + key; else await sleep(120); }
+      if (!mlk) throw new E('Подожди секунду…', 429);
+      const mine = (p.elo && p.elo[gm]) || ELO0; let best = null, bd = 1e9;
+      for (const id of await smembers(key)) {
+        if (id === me) continue; const q = await get('mm:' + id);
+        if (!q || q.k !== key) { await srem(key, id); continue; }
+        if (Date.now() - q.t > 3 * MMW) continue;
+        const u = await get('user:' + id), d = Math.abs(((u && u.elo && u.elo[gm]) || ELO0) - mine); if (d < bd) { bd = d; best = id; }
+      }
+      if (best) {
+        await srem(key, best); await del('mm:' + best); p.balance -= bt;
+        const first = Math.random() < .5, m = { id: crypto.randomBytes(4).toString('hex'), game: gm, a: first ? best : me, b: first ? me : best, bet: bt, status: 'active', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: BG[gm].init(S.edge), mm: true };
+        await set('bg:' + m.id, m); p.bgq = [...p.bgq, m.id].slice(-20);
+        const o = await xload(best); o.bgq = [...(o.bgq || []), m.id].slice(-20);
+        await set('mmr:' + best, { id: m.id, game: gm }); out = { matched: m.id, game: gm };
+      } else {
+        p.balance -= bt; await set('mm:' + me, { k: key, t: Date.now(), game: gm, bet: bt }); await sadd(key, me); out = { queued: true, wait: Math.round(MMW / 1000) };
+      }
+    } else if (a === 'mm_state') {
+      const r = await get('mmr:' + me);
+      if (r) { await del('mmr:' + me); out = { matched: r.id, game: r.game }; }
+      else {
+        const q = await get('mm:' + me);
+        if (!q) out = { idle: true };
+        else if (Date.now() - q.t < MMW) out = { queued: true, left: Math.ceil((MMW - (Date.now() - q.t)) / 1000) };
+        else {
+          for (let i = 0; i < 8 && !mlk; i++) { if (await lock('mmlock:' + q.k, 6)) mlk = 'mmlock:' + q.k; else await sleep(120); }
+          if (!mlk) throw new E('Подожди секунду…', 429);
+          const q2 = await get('mm:' + me), r2 = await get('mmr:' + me);
+          if (r2) { await del('mmr:' + me); out = { matched: r2.id, game: r2.game }; }
+          else if (!q2) out = { idle: true };
+          else {
+            await srem(q2.k, me); await del('mm:' + me);
+            const m = { id: crypto.randomBytes(4).toString('hex'), game: q2.game, a: me, b: 'bot', bet: q2.bet, status: 'active', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: BG[q2.game].init(S.edge) };
+            await set('bg:' + m.id, m); p.bgq = [...p.bgq, m.id].slice(-20); out = { matched: m.id, game: q2.game, bot: true };
+          }
+        }
+      }
+    } else if (a === 'mm_cancel') {
+      const q = await get('mm:' + me);
+      if (q) { for (let i = 0; i < 8 && !mlk; i++) { if (await lock('mmlock:' + q.k, 6)) mlk = 'mmlock:' + q.k; else await sleep(120); } }
+      const r = await get('mmr:' + me), q3 = await get('mm:' + me);
+      if (r) { await del('mmr:' + me); out = { matched: r.id, game: r.game }; }
+      else if (q3) { await srem(q3.k, me); await del('mm:' + me); p.balance += q3.bet; out = { cancelled: true }; }
+      else out = { idle: true };
+    } else if (a === 'elo_top') {
+      const gm = String(b.game); if (!BG[gm] || BG[gm].coop) throw new E('Нет рейтинга для этой игры');
+      const us = (await mget((await smembers('users')).slice(0, 2000).map(i => 'user:' + i))).filter(u => u && u.eg && u.eg[gm]).sort((x, y) => y.elo[gm] - x.elo[gm]);
+      const my = (p.elo && p.elo[gm]) || ELO0;
+      out = { top: us.slice(0, 20).map(u => ({ id: u.id, nick: u.nick || u.name, avatar: u.avatar, r: u.elo[gm], g: u.eg[gm], lg: league(u.elo[gm]) })), me: { r: my, g: (p.eg && p.eg[gm]) || 0, lg: league(my), rank: us.findIndex(u => String(u.id) === String(me)) + 1 || null } };
     } else if (a === 'notif_set') {
       p.notif.on = !!b.on; out = {};
     } else throw new E('unknown action');
@@ -655,7 +718,7 @@ export default async function handler(req, res) {
     p.seen = Date.now();
     await Promise.all([...pend, ...(save ? Object.entries(dirty).map(([id, x]) => set('user:' + id, x)) : [])]);
     await relAll();
-    res.json({ me: pub(p, lvlUp), act: { mines: !!p.mines, hilo: !!p.hilo, bj: !!p.bj, bb: !!p.bb, crash: !!(p.crash && crashM((Date.now() - p.crash.start) / 1000) < p.crash.cp) }, ...out });
+    res.json({ build: BUILD, me: pub(p, lvlUp), act: { mines: !!p.mines, hilo: !!p.hilo, bj: !!p.bj, bb: !!p.bb, crash: !!(p.crash && crashM((Date.now() - p.crash.start) / 1000) < p.crash.cp) }, ...out });
   } catch (e) {
     await relAll();
     res.status(e instanceof E ? e.code : 500).json({ error: e.message });

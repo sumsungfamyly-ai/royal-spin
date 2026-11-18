@@ -46,3 +46,14 @@ html.light .cmb i{background:rgba(90,70,140,.1);border-color:rgba(90,70,140,.2)}
 html.light .bgrx button{background:#fff;border-color:rgba(110,90,170,.2)}
 .bgfl{position:fixed;left:50%;top:32%;z-index:250;font-size:72px;pointer-events:none;transform:translateX(-50%);animation:bgfl 1.6s ease-out forwards;filter:drop-shadow(0 8px 14px rgba(0,0,0,.4))}
 @keyframes bgfl{0%{opacity:0;transform:translate(-50%,40px) scale(.4)}20%{opacity:1;transform:translate(-50%,0) scale(1.15)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-90px) scale(1)}}
+
+/* подбор соперника и рейтинг */
+.bgelo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;margin-bottom:12px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-size:14px}
+.bgelo button{min-height:34px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:inherit;font-weight:800}
+html.light .bgelo{background:#f6f2ff;border-color:rgba(95,75,175,.14)}html.light .bgelo button{background:#fff;border-color:rgba(95,75,175,.2)}
+.bgsr{text-align:center;padding:34px 18px}.bgsr h3{margin:18px 0 6px}.bgsr p{opacity:.75;margin:0 0 22px}
+.mmsp{width:74px;height:74px;margin:0 auto;border-radius:50%;border:5px solid rgba(255,255,255,.14);border-top-color:#b45cff;border-right-color:#ff6fa8;animation:mmspin 1s linear infinite}
+@keyframes mmspin{to{transform:rotate(360deg)}}
+html.light .mmsp{border-color:rgba(95,75,175,.15);border-top-color:#8a52e0;border-right-color:#ff6fa8}
+
+html body .bgsr h3{font-size:21px;letter-spacing:-.01em;text-transform:none;opacity:1;font-weight:800;color:inherit}

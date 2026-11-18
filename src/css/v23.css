@@ -37,3 +37,5 @@ body.shx #dk .dkp.new .dkc{will-change:transform}
 html body.gfs #v-game .back{background:#181331!important}
 html.light body.gfs #v-game .back{background:#fff!important}
 html body.gfs #v-game .back~*{position:relative}
+
+#verr{position:fixed;left:10px;right:10px;top:calc(10px + env(safe-area-inset-top));z-index:900;padding:12px 14px;border-radius:16px;background:#fff3cf;color:#6b4300;border:1px solid #e8b84a;font:13px/1.45 system-ui;box-shadow:0 12px 30px rgba(0,0,0,.35)}#verr button{float:right;margin-left:8px;border:0;background:transparent;font-size:16px;color:inherit}
