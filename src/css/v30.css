@@ -1,0 +1,219 @@
+/* v30: кнопки как кнопки, плавность, подбор соперника, чат в партиях */
+:root{--e30:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.4,.5,1)}
+button,[data-chip],.gc,.cp{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+img,.ic{-webkit-user-drag:none}
+
+/* ---------- нажатие: волна ---------- */
+.rpl{position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,255,255,.38);transform:scale(0);animation:rpl30 .6s var(--e30) forwards;z-index:3}
+html.light .rpl{background:rgba(120,90,220,.22)}
+@keyframes rpl30{to{transform:scale(1);opacity:0}}
+html body .go,html body .sg .gc,html body .opt button,html body .chips button,html body #dkm button,html body .bgact button,html body .sm,html body .ct,html body .bgrx button,html body .cbar,html body .cqk button,html body .top button,html body #bonus,html body .bgr button,html body .bgelo button{position:relative;overflow:hidden}
+
+/* ---------- главные кнопки: объёмные, с «ребром» ---------- */
+html body .go{height:58px;border:0!important;box-shadow:0 5px 0 rgba(86,40,120,.62),0 16px 24px -10px rgba(255,120,190,.55),inset 0 2px 0 rgba(255,255,255,.75),inset 0 -3px 0 rgba(0,0,0,.1)!important;transition:transform .1s var(--e30),box-shadow .1s var(--e30),filter .15s;will-change:transform}
+html body .go:active:not(:disabled){transform:translateY(4px) scale(.995);box-shadow:0 1px 0 rgba(86,40,120,.62),0 6px 12px -6px rgba(255,120,190,.5),inset 0 2px 0 rgba(255,255,255,.6),inset 0 -2px 0 rgba(0,0,0,.1)!important;filter:brightness(.97)}
+html body .go:disabled{opacity:.55;box-shadow:0 2px 0 rgba(86,40,120,.4),inset 0 2px 0 rgba(255,255,255,.5)!important;filter:saturate(.7)}
+html.light body .go{box-shadow:0 5px 0 rgba(120,70,170,.45),0 16px 24px -10px rgba(255,120,190,.5),inset 0 2px 0 rgba(255,255,255,.9),inset 0 -3px 0 rgba(0,0,0,.06)!important}
+
+/* ---------- вторичные кнопки: приподнятые «клавиши» ---------- */
+html body .go.sec2,html body .opt button,html body .chips button,html body #dkm button,html body .bgact button,html body .sm,html body .bgrx button,html body .bgelo button,html body .rcb{background:linear-gradient(180deg,rgba(255,255,255,.17),rgba(255,255,255,.06))!important;border:1px solid rgba(255,255,255,.2)!important;border-top-color:rgba(255,255,255,.34)!important;color:inherit;box-shadow:0 4px 0 rgba(0,0,0,.42),0 10px 16px -8px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.22)!important;transition:transform .1s var(--e30),box-shadow .1s var(--e30),background .15s}
+html body .go.sec2{height:54px;box-shadow:0 4px 0 rgba(0,0,0,.42),0 10px 16px -8px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.22)!important;animation:none}
+html body .chips button{color:var(--mut,#b9aed6);font-weight:800;letter-spacing:.06em;border-radius:14px;padding:10px 0;font-size:12px}
+html body .opt button{border-radius:16px}
+html body .go.sec2:active:not(:disabled),html body .opt button:active:not(:disabled),html body .chips button:active,html body #dkm button:active:not(:disabled),html body .bgact button:active:not(:disabled),html body .sm:active,html body .bgrx button:active,html body .bgelo button:active,html body .rcb:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.42),0 4px 8px -6px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.18)!important}
+html body .opt button:disabled,html body #dkm button:disabled,html body .bgact button:disabled{opacity:.5;box-shadow:0 2px 0 rgba(0,0,0,.3)!important}
+/* выбранный вариант: цветная кнопка с нижним ребром */
+html body .opt button.on,html body .sht button.on,html body .tabs button.on,html body .tb button.on{background:var(--ac)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 4px 0 rgba(70,35,150,.8),0 12px 20px -8px rgba(130,80,255,.75),inset 0 1px 0 rgba(255,255,255,.4)!important}
+html body .opt button.on:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(70,35,150,.8),0 5px 10px -6px rgba(130,80,255,.7),inset 0 1px 0 rgba(255,255,255,.3)!important}
+html body .opt button.on small{color:rgba(255,255,255,.85)}
+html body #dkm button{border-radius:18px}
+html body #dkm button.p,html body .bgact button.p{background:linear-gradient(115deg,#ff8fd8,#ffd36e,#7dffd1,#7db8ff)!important;color:#171021!important;border:0!important;box-shadow:0 4px 0 rgba(86,40,120,.6),inset 0 2px 0 rgba(255,255,255,.7)!important}
+html body #dkm button.dng,html body .bgact .dng{color:#ff7a8a!important;border-color:rgba(255,122,138,.45)!important;box-shadow:0 4px 0 rgba(110,20,40,.55),inset 0 1px 0 rgba(255,255,255,.14)!important}
+html body .bgr .ok{box-shadow:0 3px 0 rgba(10,90,50,.8),inset 0 1px 0 rgba(255,255,255,.5)}
+html body .bgr button{transition:transform .1s var(--e30)}html body .bgr button:active{transform:translateY(2px)}
+html body .bgrx button{width:48px;height:44px;border-radius:15px;font-size:21px}
+
+/* светлая тема: те же кнопки, но светлые */
+html.light body .go.sec2,html.light body .opt button,html.light body .chips button,html.light body #dkm button,html.light body .bgact button,html.light body .sm,html.light body .bgrx button,html.light body .bgelo button,html.light body .rcb,html.light body [data-chip]{background:linear-gradient(180deg,#fff,#f1ecff)!important;border:1px solid rgba(110,90,170,.22)!important;border-top-color:#fff!important;color:#3a3160!important;box-shadow:0 4px 0 rgba(110,90,170,.3),0 10px 16px -8px rgba(110,80,200,.28),inset 0 1px 0 #fff!important}
+html.light body .go.sec2:active:not(:disabled),html.light body .opt button:active:not(:disabled),html.light body .chips button:active,html.light body #dkm button:active:not(:disabled),html.light body .bgact button:active:not(:disabled),html.light body .sm:active,html.light body .bgrx button:active{box-shadow:0 1px 0 rgba(110,90,170,.3),inset 0 1px 0 #fff!important}
+html.light body .opt button.on,html.light body .sht button.on{background:var(--ac)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 4px 0 rgba(70,35,150,.55),0 12px 20px -8px rgba(130,80,255,.6),inset 0 1px 0 rgba(255,255,255,.5)!important}
+html.light body #dkm button.dng,html.light body .bgact .dng{color:#d12a48!important;border-color:rgba(209,42,72,.4)!important;box-shadow:0 4px 0 rgba(209,42,72,.25)!important}
+
+/* фишки со ставками: круглые кнопки с тенью и «нажатием» */
+html body .cp{box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 5px 0 rgba(0,0,0,.55),0 10px 14px rgba(0,0,0,.4);transition:transform .1s var(--e30),box-shadow .1s var(--e30),filter .15s}
+html body .cp:active{transform:translateY(4px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 1px 0 rgba(0,0,0,.55),0 3px 6px rgba(0,0,0,.4)}
+html body .tray{gap:12px}
+
+/* кнопки-картинки (камень, ножницы, бумага): картинка на «клавише» */
+html body .opt button:has(.ic){display:grid;place-items:center;min-height:72px;padding:6px}
+html body .opt button .ic{height:52px;filter:drop-shadow(0 6px 6px rgba(0,0,0,.35));transition:transform .15s var(--spring)}
+html body .opt button.on .ic{transform:scale(1.08) rotate(-3deg)}
+
+/* ---------- плитки игр = кнопки ---------- */
+html body .sg .gc{--hue:260;min-height:182px;padding:14px 10px 12px;border-radius:26px;justify-content:flex-start;gap:0;
+ box-shadow:0 6px 0 hsl(var(--hue) 55% 14%/.95),0 18px 26px -14px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.24)!important;transition:transform .12s var(--e30),box-shadow .12s var(--e30)}
+html body .sg .gc:active{transform:translateY(5px) scale(.99);box-shadow:0 1px 0 hsl(var(--hue) 55% 14%/.95),0 6px 12px -8px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.2)!important}
+html body .sg .gc .pic{width:78px;height:78px;margin:0 0 9px;border-radius:24px;display:grid;place-items:center;
+ background:linear-gradient(150deg,hsl(var(--hue) 92% 66%),hsl(calc(var(--hue) + 32) 82% 46%))!important;box-shadow:0 5px 0 hsl(var(--hue) 70% 26%),inset 0 2px 0 rgba(255,255,255,.55),inset 0 -6px 12px hsl(var(--hue) 80% 30%/.35)}
+html body .sg .gc .pic .ic,html body .sg .gc .pic img{height:58px;max-width:64px;width:auto;object-fit:contain;filter:drop-shadow(0 5px 4px rgba(0,0,0,.35))}
+html body .sg .gc .pic .tpic{width:62px;height:62px;border-radius:16px;object-fit:cover}
+html body .sg .gc .pic em{font-size:38px}
+html body .sg .gc b{font-size:15px;margin-top:2px}
+html body .sg .gc small{margin-bottom:9px}
+html body .sg .gc::before{content:"Играть";display:block!important;position:static;order:9;width:auto;height:auto;margin-top:auto;padding:7px 22px;transform:none;border-radius:999px;font-size:12.5px;font-weight:800;letter-spacing:.04em;color:#fff;background:var(--ac);box-shadow:0 3px 0 rgba(70,35,150,.7),inset 0 1px 0 rgba(255,255,255,.4)}
+html body .sg .gc.off::before{content:"Скоро";background:rgba(255,255,255,.14);box-shadow:none;color:inherit;opacity:.8}
+html body .sg .gc:last-child:nth-child(odd){min-height:118px;padding:12px 16px 12px 12px;grid-template-columns:96px 1fr;grid-template-rows:1fr auto auto auto 1fr}
+html body .sg .gc:last-child:nth-child(odd) .pic{grid-column:1;grid-row:1 / span 5;width:78px;height:78px;justify-self:center;margin:0}
+html body .sg .gc:last-child:nth-child(odd) b{grid-row:2;padding-left:4px}
+html body .sg .gc:last-child:nth-child(odd) small{grid-row:3;padding-left:4px;margin-bottom:8px}
+html body .sg .gc:last-child:nth-child(odd)::before{grid-column:2;grid-row:4;justify-self:start;margin:0 0 0 4px}
+html.light body .sg .gc{box-shadow:0 6px 0 hsl(var(--hue) 45% 78%),0 18px 26px -14px rgba(100,70,200,.4)!important}
+html.light body .sg .gc:active{box-shadow:0 1px 0 hsl(var(--hue) 45% 78%),0 6px 12px -8px rgba(100,70,200,.4)!important}
+html.light body .sg .gc.off::before{background:rgba(95,75,175,.12);color:#5b5380}
+/* бонус-баннер: тоже кнопка */
+html body #bonus.bnr{box-shadow:0 5px 0 rgba(0,0,0,.4),0 14px 22px -12px rgba(0,0,0,.5)!important;transition:transform .1s var(--e30),box-shadow .1s var(--e30)}
+html body #bonus.bnr:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.4)!important}
+html body .bnr .bnr-c{box-shadow:0 3px 0 rgba(120,80,10,.6),inset 0 1px 0 rgba(255,255,255,.6)}
+html.light body #bonus.bnr{box-shadow:0 5px 0 rgba(180,130,40,.35),0 14px 22px -12px rgba(120,80,200,.3)!important}
+/* нижняя панель и шапка */
+html body nav button{transition:transform .14s var(--spring),background .2s,color .2s}
+html body nav button:active{transform:scale(.88)}
+html body nav button svg,html body nav button .ni{transition:transform .25s var(--spring)}
+html body nav button.on svg,html body nav button.on .ni{transform:translateY(-2px) scale(1.12)}
+html body .top button{box-shadow:0 3px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.18);transition:transform .1s var(--e30),box-shadow .1s}
+html body .top button:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.4)}
+html body .bal{transition:transform .2s var(--spring)}
+
+/* ---------- плавные переходы ---------- */
+@keyframes gin{from{opacity:0;transform:translateY(26px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes shup{from{transform:translateY(100%)}to{transform:none}}
+@keyframes dkf{from{opacity:0}to{opacity:1}}
+html body #dkm{animation:dkf .22s ease-out}
+html body #dkm>div{animation:shup .38s var(--e30)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+html body .card,html body .fcard{transition:box-shadow .3s}
+.bal span{font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){html body .go::before,.bg3d *{animation:none!important}html body #dkm>div{animation-duration:.01s}}
+
+/* ---------- настольные игры: без повторного «вылета» старых фишек ---------- */
+.kpc{animation:none}
+.ckb i.ksl .kpc{animation:pcl30 .2s var(--spring) both}
+@keyframes pcl30{to{transform:translateY(-7%) scale(1.08);box-shadow:0 9px 12px rgba(0,0,0,.45),inset 0 -3px 0 rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.35)}}
+.ckb i.ktg::after{animation:tgp30 1.1s ease-in-out infinite}
+@keyframes tgp30{50%{transform:scale(1.25);opacity:.75}}
+.ckb i.ksc::after{animation:tgp30 1.6s ease-in-out infinite}
+.c4b i b{animation:none}
+.c4b i b.nw{animation:c4n30 .55s cubic-bezier(.4,0,.6,1) both}
+@keyframes c4n30{0%{transform:translateY(calc(var(--dr,3) * -112%))}62%{transform:translateY(0)}78%{transform:translateY(-9%)}100%{transform:translateY(0)}}
+.c4b.my i:hover b{filter:brightness(1.05)}
+.bgst{transition:color .3s}
+.bgst.my{animation:stp30 .5s var(--spring)}
+@keyframes stp30{from{transform:scale(.9);opacity:.4}to{transform:none;opacity:1}}
+.tdots{display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle}
+.tdots i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.4;animation:td30 1s ease-in-out infinite}
+.tdots i:nth-child(2){animation-delay:.15s}.tdots i:nth-child(3){animation-delay:.3s}
+@keyframes td30{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-4px);opacity:1}}
+.bgm{animation:rise .35s var(--e30) both}
+.bgm .av,.bgr .av{position:relative}
+.botb{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.03em;vertical-align:2px;color:#9fd8ff;background:rgba(80,160,255,.16);border:1px solid rgba(80,160,255,.35)}
+html.light .botb{color:#2a62a8;background:rgba(80,140,230,.12);border-color:rgba(60,110,200,.3)}
+
+/* ---------- подбор соперника ---------- */
+.mmv{text-align:center;padding:30px 18px 24px;overflow:hidden}
+.mmr{position:relative;width:176px;height:176px;margin:4px auto 8px}
+.mmr>i{position:absolute;inset:34px;border-radius:50%;border:2px solid rgba(180,92,255,.55);animation:mmw30 2.6s var(--e30) infinite}
+.mmr>i:nth-child(2){animation-delay:.85s}.mmr>i:nth-child(3){animation-delay:1.7s}
+@keyframes mmw30{from{transform:scale(.5);opacity:.9}to{transform:scale(1.5);opacity:0}}
+.mmme{position:absolute;inset:50px;border-radius:50%;display:grid;place-items:center;font-size:36px;background:linear-gradient(150deg,#6d5cff,#b45cff 55%,#ff6fa8);box-shadow:0 6px 0 rgba(70,35,150,.7),0 14px 30px -8px rgba(160,80,255,.7),inset 0 2px 0 rgba(255,255,255,.5);animation:mmb30 2.2s ease-in-out infinite}
+@keyframes mmb30{50%{transform:scale(1.06)}}
+.mmo{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;display:grid;place-items:center;font-size:19px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);opacity:.85;animation:mmo30 9s linear infinite}
+html.light .mmo{background:#fff;border-color:rgba(95,75,175,.2)}
+.mmo.o2{animation-delay:-2.25s}.mmo.o3{animation-delay:-4.5s}.mmo.o4{animation-delay:-6.75s}
+@keyframes mmo30{from{transform:rotate(0deg) translateY(-82px) rotate(0deg)}to{transform:rotate(360deg) translateY(-82px) rotate(-360deg)}}
+.mmv h3{margin:6px 0 4px;font-size:21px}.mmv p{margin:0 0 14px;opacity:.78}
+.mmpb{height:8px;margin:0 auto 10px;max-width:260px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
+html.light .mmpb{background:rgba(95,75,175,.12)}
+.mmpb i{display:block;height:100%;width:100%;transform-origin:left;transform:scaleX(0);border-radius:6px;background:var(--ac);transition:transform 1s linear}
+.mmv small{display:block;margin:0 auto 18px;max-width:280px;opacity:.7;line-height:1.35}
+.mmf{text-align:center;padding:26px 14px 22px}
+.mmf h3{font-size:21px;margin:0 0 18px;animation:rise .4s var(--e30) both}
+.mmvs{display:flex;align-items:center;justify-content:center;gap:6px}
+.mmp{flex:1;min-width:0;padding:14px 6px;border-radius:22px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14)}
+html.light .mmp{background:#f6f2ff;border-color:rgba(95,75,175,.16)}
+.mmp .av{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 8px;font-size:34px;border-radius:50%;background:linear-gradient(150deg,rgba(109,92,255,.5),rgba(255,111,168,.45));box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.mmp b{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mmp small{display:block;margin-top:3px;opacity:.75;font-size:12px}
+.mmp.l{animation:mml30 .55s var(--spring) both}.mmp.r{animation:mmr30 .55s var(--spring) .15s both}
+@keyframes mml30{from{opacity:0;transform:translateX(-60px) rotate(-6deg)}to{opacity:1;transform:none}}
+@keyframes mmr30{from{opacity:0;transform:translateX(60px) rotate(6deg)}to{opacity:1;transform:none}}
+.mmx{flex:none;width:44px;font-weight:900;font-size:20px;background:var(--ac);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:mmxp30 .6s var(--spring) .35s both}
+@keyframes mmxp30{from{opacity:0;transform:scale(2.4)}to{opacity:1;transform:none}}
+.mmf p{margin:16px 0 14px;opacity:.8;animation:rise .4s var(--e30) .45s both}
+.mmgo{height:6px;max-width:220px;margin:0 auto;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
+html.light .mmgo{background:rgba(95,75,175,.12)}
+.mmgo i{display:block;height:100%;border-radius:6px;background:var(--ac);transform-origin:left;animation:mmg30 1.5s linear both}
+@keyframes mmg30{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* ---------- чат в партии ---------- */
+.cbar{display:flex;align-items:center;gap:10px;width:100%;min-height:50px;margin-top:12px;padding:0 14px;border-radius:18px;font-weight:700;text-align:left;color:inherit;
+ background:linear-gradient(180deg,rgba(255,255,255,.17),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.2);border-top-color:rgba(255,255,255,.34);box-shadow:0 4px 0 rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.22);transition:transform .1s var(--e30),box-shadow .1s var(--e30)}
+.cbar:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.42)}
+html.light .cbar{background:linear-gradient(180deg,#fff,#f1ecff);border-color:rgba(110,90,170,.22);border-top-color:#fff;box-shadow:0 4px 0 rgba(110,90,170,.3),inset 0 1px 0 #fff;color:#3a3160}
+.cbar .cic{font-size:20px;flex:none}.cbar .cpv{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;opacity:.72;font-size:13px}
+.cbar .cbd{flex:none;min-width:22px;height:22px;padding:0 6px;border-radius:11px;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;background:linear-gradient(135deg,#ff5d8f,#ff8a4c);box-shadow:0 2px 8px rgba(255,93,143,.6);animation:cbd30 .4s var(--spring)}
+.cbar .cbd[hidden]{display:none}
+@keyframes cbd30{from{transform:scale(0)}to{transform:none}}
+.cbar.has{animation:cbh30 .6s var(--e30)}
+@keyframes cbh30{30%{transform:translateY(-4px) scale(1.01)}}
+#cht{position:fixed;inset:0;z-index:120;display:flex;align-items:flex-end;background:rgba(0,0,0,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:dkf .2s ease-out}
+#cht.out{animation:dko30 .22s ease-in forwards}@keyframes dko30{to{opacity:0}}
+#cht.out>.cs{animation:cso30 .24s ease-in forwards}@keyframes cso30{to{transform:translateY(100%)}}
+#cht .cs{width:100%;max-width:560px;margin:0 auto;height:min(78dvh,640px);display:flex;flex-direction:column;border-radius:28px 28px 0 0;background:rgba(20,14,34,.96);border-top:1px solid rgba(255,255,255,.18);color:#fff;animation:shup .38s var(--e30);padding-bottom:env(safe-area-inset-bottom)}
+html.light #cht .cs{background:rgba(252,250,255,.98);color:#2a2340;box-shadow:0 -20px 50px -12px rgba(110,80,200,.4)}
+#cht .ch{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;border-bottom:1px solid rgba(255,255,255,.1);position:relative}
+html.light #cht .ch{border-color:rgba(95,75,175,.12)}
+#cht .ch::before{content:"";position:absolute;top:6px;left:50%;width:38px;height:4px;margin-left:-19px;border-radius:3px;background:rgba(255,255,255,.22)}
+html.light #cht .ch::before{background:rgba(95,75,175,.22)}
+#cht .ch .av{display:grid;place-items:center;width:40px;height:40px;font-size:22px;border-radius:50%;background:rgba(255,255,255,.1);flex:none;margin-top:6px}
+#cht .ch div{flex:1;min-width:0;margin-top:6px}#cht .ch b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#cht .ch small{display:block;opacity:.65;font-size:12px}
+#cht .ch button{flex:none;margin-top:6px;min-width:42px;height:38px;border-radius:13px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:inherit;font-size:16px;font-weight:700}
+html.light #cht .ch button{background:#fff;border-color:rgba(95,75,175,.2)}
+#cht .cl{flex:1;overflow-y:auto;padding:14px 12px 8px;display:flex;flex-direction:column;gap:3px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#cht .ce{margin:auto;text-align:center;opacity:.65;font-size:14px;line-height:1.45;max-width:240px}
+#cht .cm{display:flex;max-width:84%;animation:cm30 .28s var(--spring) both}
+#cht .cm.me{align-self:flex-end}#cht .cm.op{align-self:flex-start}
+#cht .cm.g{margin-top:8px}
+@keyframes cm30{from{opacity:0;transform:translateY(10px) scale(.94)}to{opacity:1;transform:none}}
+#cht .cb{padding:8px 12px 6px;border-radius:18px;font-size:15px;line-height:1.3;word-break:break-word;white-space:pre-wrap}
+#cht .cm.me .cb{background:linear-gradient(135deg,#6d5cff,#b45cff 60%,#d95cc9);color:#fff;border-bottom-right-radius:6px}
+#cht .cm.op .cb{background:rgba(255,255,255,.12);border-bottom-left-radius:6px}
+html.light #cht .cm.op .cb{background:#efe9ff}
+#cht .cm.pd .cb{opacity:.6}
+#cht .cm.er .cb{background:#7a2236;color:#fff}
+#cht .cb time{display:block;margin-top:2px;font-size:10.5px;opacity:.6;text-align:right}
+#cht .cty .cb{display:flex;gap:4px;padding:12px 14px}
+#cht .cty .cb i{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.45;animation:td30 1s ease-in-out infinite}
+#cht .cty .cb i:nth-child(2){animation-delay:.15s}#cht .cty .cb i:nth-child(3){animation-delay:.3s}
+#cht .cq{display:flex;gap:8px;overflow-x:auto;padding:4px 12px 8px;scrollbar-width:none}#cht .cq::-webkit-scrollbar{display:none}
+#cht .cq button{flex:none;min-height:36px;padding:0 13px;border-radius:999px;font-size:13px;font-weight:700;color:inherit;white-space:nowrap;background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.18);box-shadow:0 3px 0 rgba(0,0,0,.35);transition:transform .1s var(--e30),box-shadow .1s}
+#cht .cq button:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+html.light #cht .cq button{background:linear-gradient(180deg,#fff,#f1ecff);border-color:rgba(95,75,175,.2);box-shadow:0 3px 0 rgba(95,75,175,.25)}
+#cht .cfm{display:flex;gap:8px;padding:6px 12px 12px;align-items:flex-end}
+#cht .cfm textarea{flex:1;min-height:46px;max-height:110px;padding:12px 14px;border-radius:18px;font-size:16px;line-height:1.25;text-align:left;resize:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:inherit;margin:0}
+html.light #cht .cfm textarea{background:#fff;border-color:rgba(95,75,175,.22)}
+#cht .cfm button{flex:none;width:50px;height:46px;border-radius:16px;border:0;font-size:20px;color:#fff;background:var(--ac);box-shadow:0 4px 0 rgba(70,35,150,.75),inset 0 1px 0 rgba(255,255,255,.4);transition:transform .1s var(--e30),box-shadow .1s,opacity .2s}
+#cht .cfm button:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 rgba(70,35,150,.75)}
+#cht .cfm button:disabled{opacity:.45}
+#cht .cn{min-height:16px;padding:0 16px 4px;font-size:12px;color:#ff8a9a;text-align:center}
+.cbub{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));z-index:110;max-width:min(86vw,360px);display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:20px;color:#fff;font-size:14px;background:rgba(30,22,52,.94);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 30px -8px rgba(0,0,0,.6);transform:translateX(-50%);animation:cbb30 .4s var(--spring) both}
+html.light .cbub{background:rgba(255,255,255,.97);color:#2a2340;border-color:rgba(95,75,175,.2)}
+.cbub.out{animation:cbo30 .3s ease-in forwards}
+.cbub .av{font-size:20px;flex:none}.cbub span:last-child{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+@keyframes cbb30{from{opacity:0;transform:translate(-50%,24px) scale(.9)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes cbo30{to{opacity:0;transform:translate(-50%,16px) scale(.95)}}
+
+html body .mmv h3,html body .mmf h3{font-size:21px;font-weight:800;letter-spacing:-.01em;text-transform:none;opacity:1;color:inherit;margin:6px 0 6px}
+html body .mmf h3{margin-bottom:18px}
+html body .sg .gc:last-child:nth-child(odd) .pic{background:linear-gradient(150deg,hsl(var(--hue) 92% 66%),hsl(calc(var(--hue) + 32) 82% 46%))!important;border-radius:24px}
+html body .sg .gc:last-child:nth-child(odd) .pic .ic,html body .sg .gc:last-child:nth-child(odd) .pic img{height:58px;max-width:64px}
+.mmf p{font-size:14px;line-height:1.4}
