@@ -7,7 +7,7 @@ import { BG, bbTray } from '../lib/board.js';
 import { BUILD } from '../lib/version.js';
 import { START as ELO0, league, eloPair } from '../lib/elo.js';
 import { botIdentity } from '../lib/names.js';
-import { cleanText, botReply, botFinish, KEEP } from '../lib/chat.js';
+import { cleanText, botReply, botFinish, botGreet, KEEP } from '../lib/chat.js';
 const MMW = Number(process.env.MM_WAIT_MS) || 10000;
 
 const rnd = n => crypto.randomInt(n);
@@ -154,8 +154,9 @@ function botPlay(m) {
 const ADMINS = (process.env.ADMIN_IDS || process.env.ADMIN_CHAT_ID || '').split(',').map(s => s.trim()).filter(Boolean);
 const BGN = { checkers: '♟️ Шашки', connect4: '🔴 Четыре в ряд', coblast: '🧩 Блок Бласт вдвоём', comines: '💣 Мины вдвоём' };
 const botOpp = m => ({ id: 'bot', nick: (m.bn && m.bn.nick) || 'Бот', avatar: (m.bn && m.bn.avatar) || '🤖', bot: true });
+const withGreet = (m) => { const g = botGreet(m.bn && m.bn.p); if (g) m.chat = [{ r: 'b', t: g.t, at: Date.now() + g.delay }]; return m; };
 const oppInfo = (o, game) => (o ? { id: String(o.id), nick: o.nick || o.name, avatar: o.avatar || '😎', bot: !!o.bot, r: o.bot ? null : (o.elo && o.elo[game]) || ELO0 } : null);
-const chatOf = (m, role, now = Date.now()) => { const all = m.chat || [], vis = all.filter(x => x.at <= now); return { list: vis.slice(-40).map(x => ({ me: x.r === role, t: x.t, at: x.at })), n: vis.length, ty: all.length > vis.length }; };
+const chatOf = (m, role, now = Date.now()) => { const all = m.chat || [], vis = all.filter(x => x.at <= now); return { list: vis.slice(-40).map(x => ({ me: x.r === role, t: x.t, at: x.at })), n: vis.length, ty: all.some(x => x.at > now && x.at - now < 3000) }; };
 const bgView = (m, role) => {
   const E_ = BG[m.game], my = m.status === 'active' && m.turn === role, st = m.st || {}, ch = chatOf(m, role);
   return { chat: ch.list, cn: ch.n, ty: ch.ty, id: m.id, game: m.game, status: m.status, bet: m.bet, role, w: m.w, rev: m.rev, turn: m.turn, mv: m.mv, pay: m.pay, mult: m.mult, rx: m.rx || null, elo: m.eloD || null, mm: !!m.mm, coop: !!E_.coop, free: !!E_.free, opt: m.opt, oppId: role === 'a' ? m.b : m.a, st: E_.coop ? (m.st ? E_.pub(m.st, m.status === 'done') : null) : m.game === 'checkers' ? { bd: st.bd, last: st.last, q: st.q } : { g: st.g, last: st.last }, legal: my && !E_.coop ? (m.game === 'checkers' ? E_.legal(st, role).map(x => ({ p: x.p, c: x.c })) : E_.legal(st, role)) : [] };
@@ -603,7 +604,7 @@ export default async function handler(req, res) {
       out = { shop: { items: SHOP, own: p.shop.own, eq: p.shop.eq } };
     } else if (a === 'bg_bot') {
       const gm = String(b.game); if (!BG[gm] || BG[gm].coop) throw new E('Эта игра только с другом'); on(gm); const bt = stake(b.bet); p.balance -= bt;
-      const m = { id: crypto.randomBytes(4).toString('hex'), game: gm, a: me, b: 'bot', bet: bt, status: 'active', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: BG[gm].init(), bn: botIdentity(p.nick || p.name, AV) };
+      const m = { id: crypto.randomBytes(4).toString('hex'), game: gm, a: me, b: 'bot', bet: bt, status: 'active', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: BG[gm].init(), bn: botIdentity(p.nick || p.name, AV) }; withGreet(m);
       p.bgq = [...p.bgq, m.id].slice(-20); await set('bg:' + m.id, m); out = { bg: bgView(m, 'a') };
     } else if (a === 'bg_invite') {
       const gm = String(b.game); if (!BG[gm]) throw new E('Неизвестная игра'); on(gm); const id = String(b.friend);
@@ -637,7 +638,7 @@ export default async function handler(req, res) {
           pend.push(Promise.all([incr('g:' + m.game + ':bets', pot), incr('g:' + m.game + ':payouts', pay * 2), incr('g:' + m.game + ':n', 1)])); return;
         }
         m.status = 'done'; m.w = w; m.rev++; m.mv = Date.now();
-        if (m.b === 'bot' && (w === 'a' || w === 'b')) { const bw = botFinish(w === 'b'); if (bw) m.chat = [...(m.chat || []), { r: 'b', t: bw.t, at: Date.now() + bw.delay }].slice(-KEEP); }
+        if (m.b === 'bot' && (w === 'a' || w === 'b')) { const bw = botFinish(w === 'b', m.bn && m.bn.p); if (bw) m.chat = [...(m.chat || []), { r: 'b', t: bw.t, at: Date.now() + bw.delay }].slice(-KEEP); }
         let paid = pot;
         if (w === 'draw') { A.balance += m.bet; B.balance += m.bet; } else if (w === 'x') { A.balance += m.bet; } else { const W = w === 'a' ? A : B; paid = pot - fee; W.balance += paid; W.wins++; W.duelWins = (W.duelWins || 0) + 1; W.biggest = Math.max(W.biggest, paid); }
         if (w !== 'x') {
@@ -679,7 +680,7 @@ export default async function handler(req, res) {
         if (mineC.length && now - mineC[mineC.length - 1].at < 700) throw new E('Не так быстро', 429);
         if (mineC.filter(x => now - x.at < 60000).length >= 12) throw new E('Слишком много сообщений, подожди минуту', 429);
         const oRole = flip(role), oppId = m[oRole]; m.chat = [...(m.chat || []), { r: role, t: txt, at: now }];
-        if (oppId === 'bot') { const br = botReply(txt); if (br && !m.chat.some(x => x.r === oRole && x.at > now)) m.chat.push({ r: oRole, t: br.t, at: now + br.delay }); }
+        if (oppId === 'bot') { if (!m.chat.some(x => x.r === oRole && x.at > now)) for (const br of botReply(txt, m.bn && m.bn.p, m.chat.slice(0, -1))) m.chat.push({ r: oRole, t: br.t, at: now + br.delay }); }
         else if (now - (m.ct || 0) > 180000) {
           try { const T = await get('user:' + oppId); if (T && T.notif?.on !== false && now - (T.seen || 0) > 90000) { m.ct = now; await tg('sendMessage', { chat_id: oppId, text: `💬 ${p.nick || p.name} (${BGN[m.game]}): ${txt.slice(0, 120)}`, reply_markup: { inline_keyboard: [[{ text: 'Ответить', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } } catch {}
         }
@@ -726,7 +727,7 @@ export default async function handler(req, res) {
             if (best) out = await mmPair(best, q2.game, q2.bet, q2.k);
             else {
               await srem(q2.k, me); await del('mm:' + me); await del('mmh:' + me);
-              const bn = botIdentity(p.nick || p.name, AV), m = { id: crypto.randomBytes(4).toString('hex'), game: q2.game, a: me, b: 'bot', bet: q2.bet, status: 'active', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: BG[q2.game].init(S.edge), bn };
+              const bn = botIdentity(p.nick || p.name, AV), m = { id: crypto.randomBytes(4).toString('hex'), game: q2.game, a: me, b: 'bot', bet: q2.bet, status: 'active', turn: 'a', w: null, rev: 1, t: Date.now(), mv: Date.now(), st: BG[q2.game].init(S.edge), bn }; withGreet(m);
               await set('bg:' + m.id, m); p.bgq = [...p.bgq, m.id].slice(-20); out = { matched: m.id, game: q2.game, bot: true, opp: { nick: bn.nick, avatar: bn.avatar, bot: true } };
             }
           }

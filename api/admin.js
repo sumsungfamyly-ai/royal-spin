@@ -33,8 +33,9 @@ export default async function handler(req, res) {
     }
     if (action === 'tglogin') {
       const ids = (process.env.ADMIN_IDS || process.env.ADMIN_CHAT_ID || '').split(',').map(s => s.trim()).filter(Boolean), u = verify(d.initData);
-      if (!u || !ids.includes(String(u.id))) return res.status(403).json({ error: 'Нет доступа' });
-      return res.json({ token: sign(Date.now() + 12 * 3600000) });
+      if (!u) return res.status(403).json({ error: 'Не удалось проверить Telegram. Открой админку из бота' });
+      if (!ids.includes(String(u.id))) return res.status(403).json({ error: 'Нет доступа', id: String(u.id) });
+      return res.json({ token: sign(Date.now() + 7 * 864e5), id: String(u.id), name: u.first_name || u.username || '' });
     }
     if (!valid(req.headers['x-token'])) return res.status(401).json({ error: 'auth' });
 
@@ -85,9 +86,10 @@ export default async function handler(req, res) {
     if (action === 'giveAll') {
       const amt = Math.round(Number(d.amount)); if (!amt) return res.status(400).json({ error: 'Укажи сумму' });
       const us = await allUsers();
-      for (let i = 0; i < us.length; i += 25)
-        await Promise.all(us.slice(i, i + 25).map(u => { u.balance = Math.max(0, u.balance + amt); return set('user:' + u.id, u); }));
-      return res.json({ count: us.length });
+      let done = 0, busy = 0;
+      for (let i = 0; i < us.length; i += 10)
+        await Promise.all(us.slice(i, i + 10).map(async u => { try { if (await withUser(u.id, x => { x.balance = Math.max(0, x.balance + amt); })) done++; } catch { busy++; } }));
+      return res.json({ count: done, busy });
     }
     if (action === 'getSettings') return res.json(await getSettings());
     if (action === 'saveSettings') { await saveSettings(d.settings); return res.json(await getSettings()); }

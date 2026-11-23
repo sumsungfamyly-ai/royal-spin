@@ -1,0 +1,53 @@
+/* v32: анимации везде */
+.bfl{position:fixed;z-index:80;pointer-events:none;font-weight:800;font-size:15px;padding:2px 9px;border-radius:10px;animation:bfl32 1.2s var(--e30) forwards}
+.bfl.up{color:#5dffb0;background:rgba(20,80,50,.55);text-shadow:0 0 12px rgba(93,255,176,.6)}.bfl.dn{color:#ff8a9a;background:rgba(90,20,40,.55)}
+@keyframes bfl32{0%{opacity:0;transform:translateY(-6px) scale(.8)}18%{opacity:1;transform:none}100%{opacity:0;transform:translateY(22px)}}
+@keyframes rise32{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes tile32{from{opacity:0;transform:translateY(22px) scale(.94)}to{opacity:1;transform:none}}
+section.enter>*{animation:rise32 .5s var(--e30) backwards}
+.sg .gc{animation:tile32 .55s var(--spring) backwards}
+.fcard,.qr,.lbr,.shc,.fr{animation:rise32 .45s var(--e30) backwards}
+section.enter>*:nth-child(2){animation-delay:55ms}
+section.enter>*:nth-child(3){animation-delay:110ms}
+section.enter>*:nth-child(4){animation-delay:165ms}
+section.enter>*:nth-child(5){animation-delay:220ms}
+section.enter>*:nth-child(6){animation-delay:275ms}
+section.enter>*:nth-child(7){animation-delay:330ms}
+section.enter>*:nth-child(8){animation-delay:385ms}
+section.enter>*:nth-child(9){animation-delay:440ms}
+section.enter>*:nth-child(10){animation-delay:495ms}
+.sg .gc:nth-child(2){animation-delay:45ms}
+.sg .gc:nth-child(3){animation-delay:90ms}
+.sg .gc:nth-child(4){animation-delay:135ms}
+.sg .gc:nth-child(5){animation-delay:180ms}
+.sg .gc:nth-child(6){animation-delay:225ms}
+.sg .gc:nth-child(7){animation-delay:270ms}
+.sg .gc:nth-child(8){animation-delay:315ms}
+.sg .gc:nth-child(9){animation-delay:360ms}
+.sg .gc:nth-child(10){animation-delay:405ms}
+.sg .gc:nth-child(11){animation-delay:450ms}
+.sg .gc:nth-child(12){animation-delay:495ms}
+.sg .gc:nth-child(13){animation-delay:540ms}
+.sg .gc:nth-child(14){animation-delay:585ms}
+.sg .gc:nth-child(15){animation-delay:630ms}
+.sg .gc:nth-child(16){animation-delay:675ms}
+.sg .gc:nth-child(17){animation-delay:720ms}
+.sg .gc:nth-child(18){animation-delay:765ms}
+.sg .gc:nth-child(19){animation-delay:810ms}
+.sg .gc:nth-child(20){animation-delay:855ms}
+
+/* результат игры: выигрыш подпрыгивает, проигрыш вздрагивает */
+.msg.win{animation:msgw32 .7s var(--spring)}.msg.lose{animation:msgl32 .45s ease-out}
+@keyframes msgw32{0%{transform:scale(.6);opacity:0}55%{transform:scale(1.12)}100%{transform:none;opacity:1}}
+@keyframes msgl32{0%,100%{transform:none}20%{transform:translateX(-7px)}45%{transform:translateX(6px)}70%{transform:translateX(-3px)}}
+/* нижняя панель: активная иконка подпрыгивает */
+nav button.on>span:first-child,nav button.on svg{animation:navp32 .45s var(--spring)}
+@keyframes navp32{0%{transform:scale(.7) translateY(4px)}60%{transform:scale(1.18) translateY(-3px)}100%{transform:translateY(-2px) scale(1.1)}}
+/* ставки и фишки: выбранная фишка приподнимается */
+.cp{transition:transform .18s var(--spring),box-shadow .18s,filter .2s}
+.cp.on,.cp.sel,.cp[aria-pressed=true]{transform:translateY(-5px) scale(1.08)}
+/* списки партий и строки */
+.bgr{animation:rise32 .4s var(--e30) backwards}.bgr:nth-child(2){animation-delay:.05s}.bgr:nth-child(3){animation-delay:.1s}.bgr:nth-child(4){animation-delay:.15s}
+/* плавный скролл и экономия ресурсов */
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){section.enter>*,.sg .gc,.bgr,.fcard,.qr{animation:none!important}.bfl{display:none}}
