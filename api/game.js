@@ -3,7 +3,7 @@ import { get, set, setex, del, sadd, srem, smembers, mget, incr, lock, once } fr
 import { verify, tg } from '../lib/tg.js';
 import { getSettings } from '../lib/settings.js';
 import { SHOP, SHOP_CATS } from '../lib/shop.js';
-import { BG, bbTray } from '../lib/board.js';
+import { BG, bbTray, bbMultE, BB_CAP } from '../lib/board.js';
 import { BUILD } from '../lib/version.js';
 import { START as ELO0, league, eloPair } from '../lib/elo.js';
 import { botIdentity } from '../lib/names.js';
@@ -99,7 +99,7 @@ function dView(m, role) {
   }
   return { id: m.id, status: m.status, bet: m.bet, role, oppId: m[opp], oppN: m.hands ? m.hands[opp].length : 0, hand, table: m.table, deckN: m.deck ? m.deck.length : 0,
     trump: m.trump, trumpCard: m.deck && m.deck.length ? m.deck[0] : null, att: m.att, turn: m.turn, phase: m.phase, taking: m.taking, limit: m.limit,
-    w: m.w, last: m.last, rev: m.rev, mv: m.mv, legal };
+    w: m.w, last: m.last, rev: m.rev, mv: m.mv, legal, bot: m.b === 'bot', bw: m.b === 'bot' && m.status === 'active' && m.turn === 'b' ? Math.max(0, (m.botAt || 0) - Date.now()) : 0 };
 }
 class E extends Error { constructor(m, c = 400) { super(m); this.code = c; } }
 const norm = p => { p.lb ??= { s: 'none' }; if (p.lastDay) { const t = Date.parse(p.lastDay + 'T12:00:00Z'); if (!p.bonusAt || t > p.bonusAt) p.bonusAt = t; delete p.lastDay; } p.bestStreak ??= p.streak || 0; p.dq ??= []; p.shop ??= { own: [], eq: {} }; p.bgq ??= []; p.notif ??= { on: true, last: 0 }; p.lvl ??= lvl(p.xp); p.q ??= { d: '', games: 0, wins: 0, bet: 0, done: [] }; p.ach ??= {}; p.hist ??= []; p.streak ??= 0; p.refs ??= 0; p.duelWins ??= 0; p.avatar ??= '😎'; p.bio ??= ''; p.xp ??= 0; p.biggest ??= 0; p.friends ??= []; p.reqIn ??= []; p.mq ??= []; return p; };
@@ -141,15 +141,16 @@ function botNext(m) {
     if (st(opts[0]) === tr) trumps++;
     left.splice(left.indexOf(opts[0]), 1); if (i === open[0][1]) var first = { k: 'defend', c: opts[0], i };
   }
-  if (trumps && m.deck.length > 6 && open.every(([a]) => st(a) !== tr && rk(a) <= 9)) return { k: 'take' };
+  if (trumps && m.deck.length > 6 && !m.table.some(x => x[1] != null) && open.every(([a]) => st(a) !== tr && rk(a) <= 9)) return { k: 'take' };
   return first;
 }
-function botPlay(m) {
-  for (let n = 0; n < 40 && m.status === 'active' && m.turn === 'b'; n++) {
-    let r; try { r = dMove(m, 'b', botNext(m)); } catch { try { r = dMove(m, 'b', { k: m.phase === 'defend' ? 'take' : 'pass' }); } catch { return null; } }
-    if (r) return r;
-  }
-  return null;
+// Бот ходит по одному ходу с паузой (как живой игрок): следующий ход делается по запросу durak_bot_tick, когда пришло время m.botAt
+const botDelay = () => 1500 + rnd(1700);
+function botStep(m) {
+  if (m.status !== 'active' || m.turn !== 'b') return null;
+  let r; try { r = dMove(m, 'b', botNext(m)); } catch { try { r = dMove(m, 'b', { k: m.phase === 'defend' ? 'take' : 'pass' }); } catch { return null; } }
+  if (!r && m.status === 'active' && m.turn === 'b') m.botAt = Date.now() + botDelay(); else m.botAt = 0;
+  return r;
 }
 const ADMINS = (process.env.ADMIN_IDS || process.env.ADMIN_CHAT_ID || '').split(',').map(s => s.trim()).filter(Boolean);
 const BGN = { checkers: '♟️ Шашки', connect4: '🔴 Четыре в ряд', coblast: '🧩 Блок Бласт вдвоём', comines: '💣 Мины вдвоём' };
@@ -165,7 +166,7 @@ const PL = (r, e) => { const k = { low: [6, 2.5], mid: [40, 3], high: [260, 3.6]
 const BBS = [[[0,0]],[[0,0],[0,1]],[[0,0],[1,0]],[[0,0],[0,1],[0,2]],[[0,0],[1,0],[2,0]],[[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],[[0,0],[1,0],[1,1]],[[0,0],[0,1],[1,0]],[[0,0],[0,1],[0,2],[0,3]],[[0,0],[1,0],[2,0],[3,0]],[[0,0],[0,1],[1,1]],[[0,1],[1,0],[1,1]],[[0,0],[1,0],[2,0],[2,1]],[[0,0],[0,1],[0,2],[1,0]]];
 const bbFits = (bd, s, x, y) => BBS[s].every(([r, c]) => { const R = y + r, C = x + c; return R >= 0 && R < 8 && C >= 0 && C < 8 && !bd[R * 8 + C]; });
 const bbAny = (bd, pcs) => pcs.some(s => s !== null && bd.some((_, i) => bbFits(bd, s, i % 8, (i / 8) | 0)));
-const bbMult = (sc, e) => Math.min(25, Math.floor(sc / 150 * (1 - e / 100) * 100) / 100);
+const bbMult = bbMultE;
 export default async function handler(req, res) {
   let lk = null, mlk = null; const pend = [], held = [];
   const relAll = async () => { const ks = [lk, mlk, ...held].filter(Boolean); lk = mlk = null; held.length = 0; await Promise.allSettled(ks.map(k => del(k))); };
@@ -351,14 +352,19 @@ export default async function handler(req, res) {
       p.bio = String(b.bio || '').slice(0, 60);
       out = { msg: 'Профиль сохранён' };
     } else if (a === 'top') {
-      const by = ['balance', 'xp', 'biggest'].includes(b.by) ? b.by : 'balance';
-      const ids = await smembers('users');
-      const [all, manual] = await Promise.all([mget(ids.slice(0, 1000).map(i => 'user:' + i)), get('lb:manual')]);
-      const real = all.filter(Boolean).filter(x => S.lbOpen || (x.lb && x.lb.s === 'approved'))
-        .map(x => ({ nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), value: by === 'xp' ? lvl(x.xp) : x[by] || 0, me: String(x.id) === me }));
-      const man = (manual || []).map(m => ({ nick: m.nick, avatar: m.avatar || '🏆', level: m.level || 1, value: by === 'xp' ? m.level || 1 : by === 'biggest' ? m.biggest || 0 : m.balance || 0 }));
-      const rows = real.concat(man).sort((x, y) => y.value - x.value), mi = rows.findIndex(r => r.me);
-      out = { by, open: !!S.lbOpen, rank: mi >= 0 ? mi + 1 : 0, top: rows.slice(0, 20), total: rows.length };
+      const by = ['balance', 'xp', 'biggest'].includes(b.by) ? b.by : 'balance', ck = `cache:top:${by}:${S.lbOpen ? 1 : 0}`;
+      let rows = await get(ck);   // рейтинг считается раз в 30 с на всех, а не на каждое открытие вкладки
+      if (!rows) {
+        const ids = await smembers('users');
+        const [all, manual] = await Promise.all([mget(ids.slice(0, 2000).map(i => 'user:' + i)), get('lb:manual')]);
+        const real = all.filter(Boolean).filter(x => S.lbOpen || (x.lb && x.lb.s === 'approved'))
+          .map(x => ({ id: String(x.id), nick: x.nick || x.name, avatar: x.avatar || '😎', level: lvl(x.xp), value: by === 'xp' ? lvl(x.xp) : x[by] || 0 }));
+        const man = (manual || []).map(m => ({ nick: m.nick, avatar: m.avatar || '🏆', level: m.level || 1, value: by === 'xp' ? m.level || 1 : by === 'biggest' ? m.biggest || 0 : m.balance || 0 }));
+        rows = real.concat(man).sort((x, y) => y.value - x.value);
+        try { await setex(ck, rows, 30); } catch {}
+      }
+      const mi = rows.findIndex(r => r.id === me);
+      out = { by, open: !!S.lbOpen, rank: mi >= 0 ? mi + 1 : 0, top: rows.slice(0, 20).map(r => ({ nick: r.nick, avatar: r.avatar, level: r.level, value: r.value, me: r.id === me })), total: rows.length };
     } else if (a === 'lb_apply') {
       if (S.lbOpen) throw new E('Рейтинг открыт для всех, заявка не нужна');
       const st = p.lb.s;
@@ -400,7 +406,7 @@ export default async function handler(req, res) {
         const rows = [], cols = []; for (let n = 0; n < 8; n++) { if (g.bd.slice(n * 8, n * 8 + 8).every(Boolean)) rows.push(n); if ([0,1,2,3,4,5,6,7].every(r => g.bd[r * 8 + n])) cols.push(n); }
         const ln = rows.length + cols.length; rows.forEach(r => { for (let c = 0; c < 8; c++) g.bd[r * 8 + c] = 0; }); cols.forEach(c => { for (let r = 0; r < 8; r++) g.bd[r * 8 + c] = 0; }); g.sc += 10 * ln * ln;
         if (g.pcs.every(v => v === null)) g.pcs = bbTray(g.bd);
-        over = !bbAny(g.bd, g.pcs) || bbMult(g.sc, S.edge) >= 25;
+        over = !bbAny(g.bd, g.pcs) || bbMult(g.sc, S.edge) >= BB_CAP;
       }
       const mult = bbMult(g.sc, S.edge);
       if (over) { const win = Math.floor(g.bet * mult); p.balance += win; await settle('blockblast', g.bet, win); p.bb = null; out = { over: true, win, mult, bb: { bd: g.bd, pcs: g.pcs, sc: g.sc } }; }
@@ -516,7 +522,7 @@ export default async function handler(req, res) {
       const t = await xload(id); if (t) t.friends = t.friends.filter(x => x !== me);
     } else if (a === 'durak_bot') {
       on('durak'); const bt = stake(b.bet); p.balance -= bt;
-      const m = dNew(crypto.randomBytes(4).toString('hex'), me, 'bot', bt); botPlay(m);
+      const m = dNew(crypto.randomBytes(4).toString('hex'), me, 'bot', bt); if (m.turn === 'b') m.botAt = Date.now() + 2000 + rnd(1200);
       p.dq = [...p.dq, m.id].slice(-20); await set('durak:' + m.id, m); out = { durakId: m.id };
     } else if (a === 'duel_create' && b.type === 'durak') {
       on('durak'); const id = String(b.friend);
@@ -527,7 +533,7 @@ export default async function handler(req, res) {
       await set('durak:' + m.id, m); p.dq = [...p.dq, m.id].slice(-20); t.dq = [...t.dq, m.id].slice(-20);
       try { await tg('sendMessage', { chat_id: id, text: `🃏 ${p.nick || p.name} зовёт тебя сыграть в Дурака! Ставка: ${bt} 🪙`, reply_markup: { inline_keyboard: [[{ text: '🃏 Открыть', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } catch {}
       out = { msg: 'Вызов в Дурака отправлен', durakId: m.id };
-    } else if (a === 'durak_accept' || a === 'durak_decline' || a === 'durak_move' || a === 'durak_resign' || a === 'durak_claim') {
+    } else if (a === 'durak_accept' || a === 'durak_decline' || a === 'durak_move' || a === 'durak_resign' || a === 'durak_claim' || a === 'durak_bot_tick') {
       for (let i = 0; i < 8 && !mlk; i++) { if (await lock('mlock:' + b.id, 6)) mlk = 'mlock:' + b.id; else await sleep(120); }
       if (!mlk) throw new E('Подожди секунду…', 429);
       const m = await get('durak:' + b.id); if (!m || (m.a !== me && m.b !== me)) throw new E('Игра не найдена');
@@ -550,11 +556,14 @@ export default async function handler(req, res) {
         if (m.bet > p.balance) throw new E('Недостаточно фишек');
         p.balance -= m.bet; Object.assign(m, dNew(m.id, m.a, m.b, m.bet));
       } else if (a === 'durak_move') {
-        const r = dMove(m, role, b.mv || {}); if (r) await finish(r); else if (m.b === 'bot') { const r2 = botPlay(m); if (r2) await finish(r2); }
+        const r = dMove(m, role, b.mv || {}); if (r) await finish(r); else if (m.b === 'bot' && m.turn === 'b') m.botAt = Date.now() + botDelay();
+      } else if (a === 'durak_bot_tick') {
+        if (m.b !== 'bot' || m.a !== me) throw new E('Нельзя');
+        if (m.status === 'active' && m.turn === 'b' && Date.now() >= (m.botAt || 0) - 200) { const r = botStep(m); if (r) await finish(r); }
       } else if (a === 'durak_resign') {
         if (m.status !== 'active') throw new E('Игра окончена'); await finish(other(role));
       } else {
-        if (m.status !== 'active' || m.turn === role) throw new E('Нельзя'); if (Date.now() - m.mv < 120000) throw new E('Подожди: у соперника ещё есть время на ход');
+        if (m.status !== 'active' || m.turn === role || m.b === 'bot') throw new E('Нельзя'); if (Date.now() - m.mv < 120000) throw new E('Подожди: у соперника ещё есть время на ход');
         await finish(role);
       }
       if (a === 'durak_accept') { m.rev = prevRev + 1; m.mv = Date.now(); }
@@ -680,7 +689,7 @@ export default async function handler(req, res) {
         if (mineC.length && now - mineC[mineC.length - 1].at < 700) throw new E('Не так быстро', 429);
         if (mineC.filter(x => now - x.at < 60000).length >= 12) throw new E('Слишком много сообщений, подожди минуту', 429);
         const oRole = flip(role), oppId = m[oRole]; m.chat = [...(m.chat || []), { r: role, t: txt, at: now }];
-        if (oppId === 'bot') { if (!m.chat.some(x => x.r === oRole && x.at > now)) for (const br of botReply(txt, m.bn && m.bn.p, m.chat.slice(0, -1))) m.chat.push({ r: oRole, t: br.t, at: now + br.delay }); }
+        if (oppId === 'bot') { if (!m.chat.some(x => x.r === oRole && x.at > now)) for (const br of botReply(txt, m.bn && m.bn.p, m.chat.slice(0, -1), { game: m.game, bot: m.bn && m.bn.nick, nick: p.nick || p.name })) m.chat.push({ r: oRole, t: br.t, at: now + br.delay }); }
         else if (now - (m.ct || 0) > 180000) {
           try { const T = await get('user:' + oppId); if (T && T.notif?.on !== false && now - (T.seen || 0) > 90000) { m.ct = now; await tg('sendMessage', { chat_id: oppId, text: `💬 ${p.nick || p.name} (${BGN[m.game]}): ${txt.slice(0, 120)}`, reply_markup: { inline_keyboard: [[{ text: 'Ответить', web_app: { url: process.env.APP_URL || `https://${req.headers.host}` } }]] } }); } } catch {}
         }
